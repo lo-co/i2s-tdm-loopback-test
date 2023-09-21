@@ -31,8 +31,21 @@
 #define DEMO_CODEC_I2C_BASEADDR         I2C2
 #define DEMO_CODEC_I2C_INSTANCE         2U
 #define DEMO_TDM_DATA_START_POSITION    1U
-#define BUFFER_SIZE   (1024U)
+// Increase buffer size to accommodate adding sine into one channel
+#define CHANNEL_PAIRS (4U)
+#define SAMPLE_SIZE_MS (8)
+#define SAMPLE_PER_MS (48)
+#define BYTES_PER_SAMPLE (4)
+#define NUM_CHANNELS (8)
+#define BUFFER_SIZE   (SAMPLE_SIZE_MS * SAMPLE_PER_MS * BYTES_PER_SAMPLE * NUM_CHANNELS)
 #define BUFFER_NUMBER (4U)
+#define CONST_DATA (0xdeadbeef)
+#define M_PI 3.14159265358979323846
+
+// For SW2 functionality
+#define APP_GPIO_INTA_IRQHandler GPIO_INTA_DriverIRQHandler
+#define APP_SW_IRQ               GPIO_INTA_IRQn
+
 /* demo audio sample rate */
 /*******************************************************************************
  * Prototypes
@@ -55,7 +68,9 @@ cs42448_config_t cs42448Config = {
 
 codec_config_t boardCodecConfig = {.codecDevType = kCODEC_CS42448, .codecDevConfig = &cs42448Config};
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
-static uint32_t tx_index = 0U, rx_index = 0U;
+
+static uint32_t tx_index = 1U, rx_index = 0U;
+
 volatile uint32_t emptyBlock = BUFFER_NUMBER;
 extern codec_config_t boardCodecConfig;
 codec_handle_t codecHandle;
@@ -65,11 +80,63 @@ static i2s_dma_handle_t s_i2sTxHandle;
 static i2s_dma_handle_t s_i2sRxHandle;
 static dma_handle_t s_i2sTxDmaHandle;
 static dma_handle_t s_i2sRxDmaHandle;
+static i2s_transfer_t xfer;
+
+int32_t wave[48] = {0};
+
+bool g_interruptEnabled = false;
+
 /*******************************************************************************
  * Code
  ******************************************************************************/
+static void generate_wave()
+{
+	// This is generating a shit wave but it works for the moment
+	// Volume is 1/4 max
+	int32_t max_vol = 67108864;
+
+	PRINTF("Generating wave now...\r\n");
+
+	for (uint8_t i = 0; i < 48; i++)
+	{
+		wave[i] = (int32_t)(max_vol * sin(2*M_PI /48*i));
+	}
+
+}
+
 static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
+	uint32_t i = 0;
+	uint32_t wave_pos = 0;
+	i2s_transfer_t i2s_data = *(i2s_transfer_t *)userData;
+
+	int32_t *new_data = (int32_t *)(i2s_data.data);
+
+	// Only intercept the signal if the interrupt is active...
+	if (g_interruptEnabled){
+
+		uint32_t num_elements = (SAMPLE_SIZE_MS * SAMPLE_PER_MS *  NUM_CHANNELS);
+
+		for (; i < num_elements;wave_pos++)
+		{
+			new_data[i++] = wave[wave_pos % 48];
+			new_data[i++] = wave[wave_pos % 48];
+			i+=6;
+		}
+	}
+    if (emptyBlock < BUFFER_NUMBER)
+    {
+        xfer.data     = Buffer + tx_index * BUFFER_SIZE;
+        xfer.dataSize = BUFFER_SIZE;
+        if (kStatus_Success == I2S_TxTransferSendDMA(DEMO_I2S_TX, &s_i2sTxHandle, xfer))
+        {
+            tx_index++;
+        }
+        if (tx_index == BUFFER_NUMBER)
+        {
+            tx_index = 0U;
+        }
+    }
     emptyBlock--;
 }
 
@@ -170,6 +237,13 @@ int main(void)
 
     PRINTF("Starting TDM record playback\n\r");
 
+	for (uint32_t i = 0; i < BUFFER_SIZE * BUFFER_NUMBER; i++)
+	{
+		Buffer[i] = 0;
+	}
+
+    generate_wave();
+
     while (1)
     {
         if (emptyBlock > 0)
@@ -183,19 +257,6 @@ int main(void)
             if (rx_index == BUFFER_NUMBER)
             {
                 rx_index = 0U;
-            }
-        }
-        if (emptyBlock < BUFFER_NUMBER)
-        {
-            xfer.data     = Buffer + tx_index * BUFFER_SIZE;
-            xfer.dataSize = BUFFER_SIZE;
-            if (kStatus_Success == I2S_TxTransferSendDMA(DEMO_I2S_TX, &s_i2sTxHandle, xfer))
-            {
-                tx_index++;
-            }
-            if (tx_index == BUFFER_NUMBER)
-            {
-                tx_index = 0U;
             }
         }
     }
