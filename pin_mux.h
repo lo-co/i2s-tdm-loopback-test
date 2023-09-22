@@ -99,47 +99,62 @@ void BOARD_InitDebugConsolePins(void); /* Function assigned for the Cortex-M33 *
 /*! @name PIO0_10 (coord J3), SW2
   @{ */
 /* Routed pin properties */
-#define BOARD_INITPINS_SW2_PERIPHERAL GPIO                   /*!<@brief Peripheral name */
-#define BOARD_INITPINS_SW2_SIGNAL PIO0                       /*!<@brief Signal name */
-#define BOARD_INITPINS_SW2_CHANNEL 10                        /*!<@brief Signal channel */
+#define SW2_PERIPHERAL GPIO                   /*!<@brief Peripheral name */
+#define SW2_SIGNAL PIO0                       /*!<@brief Signal name */
+#define SW2_CHANNEL 10                        /*!<@brief Signal channel */
 
 /* Symbols to be used with GPIO driver */
-#define BOARD_INITPINS_SW2_GPIO GPIO                         /*!<@brief GPIO peripheral base pointer */
-#define BOARD_INITPINS_SW2_GPIO_PIN_MASK (1U << 10U)         /*!<@brief GPIO pin mask */
-#define BOARD_INITPINS_SW2_PORT 0U                           /*!<@brief PORT peripheral base pointer */
-#define BOARD_INITPINS_SW2_PIN 10U                           /*!<@brief PORT pin number */
-#define BOARD_INITPINS_SW2_PIN_MASK (1U << 10U)              /*!<@brief PORT pin mask */
-                                                             /* @} */
+#define SW2_GPIO GPIO                         /*!<@brief GPIO peripheral base pointer */
+#define SW2_GPIO_PIN_MASK (1U << 10U)         /*!<@brief GPIO pin mask */
+#define SW2_PORT 0U                           /*!<@brief PORT peripheral base pointer */
+#define SW2_PIN 10U                           /*!<@brief PORT pin number */
+#define SW2_PIN_MASK (1U << 10U)              /*!<@brief PORT pin mask */
+                                              /* @} */
 
 /*! @name PIO1_14 (coord N2), TimingInt1
   @{ */
 /* Routed pin properties */
-#define BOARD_INITPINS_Timing_Int_1_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
-#define BOARD_INITPINS_Timing_Int_1_SIGNAL PIO1                        /*!<@brief Signal name */
-#define BOARD_INITPINS_Timing_Int_1_CHANNEL 14                         /*!<@brief Signal channel */
+#define Timing_Int_1_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
+#define Timing_Int_1_SIGNAL PIO1                        /*!<@brief Signal name */
+#define Timing_Int_1_CHANNEL 14                         /*!<@brief Signal channel */
 
 /* Symbols to be used with GPIO driver */
-#define BOARD_INITPINS_Timing_Int_1_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
-#define BOARD_INITPINS_Timing_Int_1_GPIO_PIN_MASK (1U << 14U)          /*!<@brief GPIO pin mask */
-#define BOARD_INITPINS_Timing_Int_1_PORT 1U                            /*!<@brief PORT peripheral base pointer */
-#define BOARD_INITPINS_Timing_Int_1_PIN 14U                            /*!<@brief PORT pin number */
-#define BOARD_INITPINS_Timing_Int_1_PIN_MASK (1U << 14U)               /*!<@brief PORT pin mask */
-                                                                       /* @} */
+#define Timing_Int_1_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
+#define Timing_Int_1_GPIO_PIN_MASK (1U << 14U)          /*!<@brief GPIO pin mask */
+#define Timing_Int_1_PORT 1U                            /*!<@brief PORT peripheral base pointer */
+#define Timing_Int_1_PIN 14U                            /*!<@brief PORT pin number */
+#define Timing_Int_1_PIN_MASK (1U << 14U)               /*!<@brief PORT pin mask */
+                                                        /* @} */
 
 /*! @name PIO1_13 (coord N1), TimingInt2
   @{ */
 /* Routed pin properties */
-#define BOARD_INITPINS_Timing_Int_2_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
-#define BOARD_INITPINS_Timing_Int_2_SIGNAL PIO1                        /*!<@brief Signal name */
-#define BOARD_INITPINS_Timing_Int_2_CHANNEL 13                         /*!<@brief Signal channel */
+#define Timing_Int_2_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
+#define Timing_Int_2_SIGNAL PIO1                        /*!<@brief Signal name */
+#define Timing_Int_2_CHANNEL 13                         /*!<@brief Signal channel */
 
 /* Symbols to be used with GPIO driver */
-#define BOARD_INITPINS_Timing_Int_2_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
-#define BOARD_INITPINS_Timing_Int_2_GPIO_PIN_MASK (1U << 13U)          /*!<@brief GPIO pin mask */
-#define BOARD_INITPINS_Timing_Int_2_PORT 1U                            /*!<@brief PORT peripheral base pointer */
-#define BOARD_INITPINS_Timing_Int_2_PIN 13U                            /*!<@brief PORT pin number */
-#define BOARD_INITPINS_Timing_Int_2_PIN_MASK (1U << 13U)               /*!<@brief PORT pin mask */
-                                                                       /* @} */
+#define Timing_Int_2_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
+#define Timing_Int_2_GPIO_PIN_MASK (1U << 13U)          /*!<@brief GPIO pin mask */
+#define Timing_Int_2_PORT 1U                            /*!<@brief PORT peripheral base pointer */
+#define Timing_Int_2_PIN 13U                            /*!<@brief PORT pin number */
+#define Timing_Int_2_PIN_MASK (1U << 13U)               /*!<@brief PORT pin mask */
+                                                        /* @} */
+
+/*! @name PIO0_26 (coord A2), LED_BLUE
+  @{ */
+/* Routed pin properties */
+#define LED_BLUE_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
+#define LED_BLUE_SIGNAL PIO0                        /*!<@brief Signal name */
+#define LED_BLUE_CHANNEL 26                         /*!<@brief Signal channel */
+
+/* Symbols to be used with GPIO driver */
+#define LED_BLUE_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
+#define LED_BLUE_GPIO_PIN_MASK (1U << 26U)          /*!<@brief GPIO pin mask */
+#define LED_BLUE_PORT 0U                            /*!<@brief PORT peripheral base pointer */
+#define LED_BLUE_PIN 26U                            /*!<@brief PORT pin number */
+#define LED_BLUE_PIN_MASK (1U << 26U)               /*!<@brief PORT pin mask */
+                                                    /* @} */
 
 /*!
  * @brief Configures pin routing and optionally pin electrical features.

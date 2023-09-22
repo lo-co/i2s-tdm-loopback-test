@@ -3,3 +3,5 @@ __repo__/
 armgcc/
 
 *.bak
+
+*.code-workspace

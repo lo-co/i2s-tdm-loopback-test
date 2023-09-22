@@ -30,6 +30,7 @@
             <processor_version>14.0.0</processor_version>
             <pin_labels>
                <pin_label pin_num="J3" pin_signal="PIO0_10/FC1_CTS_SDA_SSEL0/SCT0_GPI7/SCT0_OUT7/CTIMER1_MAT3/FC0_SSEL2/SEC_PIO0_10" label="SW2" identifier="SW2" comment="Input pin for switch used to turn off and on data xfer"/>
+               <pin_label pin_num="A2" pin_signal="PIO0_26/FC3_SSEL2/SCT0_GPI6/SCT0_OUT6/CTIMER_INP7/SEC_PIO0_26/ADC0_3" label="LED_BLUE" identifier="LED_BLUE" comment="ON == data transmission"/>
                <pin_label pin_num="B1" pin_signal="PIO1_9/FC5_SSEL3/SCT0_GPI7/UTICK_CAP1/CTIMER1_MAT3/ADC0_12" label="WL_REG_ON" identifier="BOARD_INITPINS_WL_REG_ON;WL_REG_ON"/>
                <pin_label pin_num="N1" pin_signal="PIO1_13/HS_SPI_MOSI/CTIMER2_MAT2/FLEXSPI0B_DATA2" label="TimingInt2" identifier="Timing_Int_2" comment="DO used for timing purposes"/>
                <pin_label pin_num="N2" pin_signal="PIO1_14/HS_SPI_SSEL0/CTIMER2_MAT3/FLEXSPI0B_DATA3" label="TimingInt1" identifier="Timing_Int_1" comment="Used as a DO for timing purposes"/>
@@ -195,6 +196,7 @@
                <description>Configures pin routing and optionally pin electrical features.</description>
                <options>
                   <callFromInitBoot>true</callFromInitBoot>
+                  <prefix></prefix>
                   <coreID>cm33</coreID>
                   <enableClock>true</enableClock>
                </options>
@@ -228,6 +230,11 @@
                      </pin_features>
                   </pin>
                   <pin peripheral="GPIO" signal="PIO1, 13" pin_num="N1" pin_signal="PIO1_13/HS_SPI_MOSI/CTIMER2_MAT2/FLEXSPI0B_DATA2">
+                     <pin_features>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="GPIO" signal="PIO0, 26" pin_num="A2" pin_signal="PIO0_26/FC3_SSEL2/SCT0_GPI6/SCT0_OUT6/CTIMER_INP7/SEC_PIO0_26/ADC0_3">
                      <pin_features>
                         <pin_feature name="direction" value="OUTPUT"/>
                      </pin_features>
