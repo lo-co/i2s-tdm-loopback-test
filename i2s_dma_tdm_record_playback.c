@@ -160,13 +160,15 @@ static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t c
 {
 	i2s_transfer_t i2s_data = *(i2s_transfer_t *)userData;
 
-	int32_t *new_data = (int32_t *)(i2s_data.data);
+    uint32_t *rcvd_data = (uint32_t *)i2s_data.data;
+
+	int32_t *new_data = (int32_t *)(tx_Buffer + tx_index*BUFFER_SIZE);
 
     // Use this to register an event
     static bool transmitting = false;
     static bool trans_rcv = false;
 
-    if (!trans_rcv && transmitting && new_data[8] == wave[1] && new_data[16] == wave[2]) {
+    if (!trans_rcv && transmitting && rcvd_data[8] == wave[1] && rcvd_data[16] == wave[2]) {
         evt_times[current_evt_idx++] = ostime_get_us();
         trans_rcv = true;
     }
@@ -174,8 +176,6 @@ static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t c
 
 	// Only intercept the signal if the interrupt is active...
 	if (g_interruptEnabled){
-        uint32_t i = 0;
-        uint32_t wave_pos = 0;
         if (!transmitting)
         {
             evt_times[current_evt_idx++] = ostime_get_us();
@@ -184,7 +184,9 @@ static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t c
 
 		uint32_t num_elements = (SAMPLE_SIZE_MS * SAMPLE_PER_MS *  NUM_CHANNELS);
 
-		for (; i < num_elements;wave_pos++)
+        memcpy(new_data, i2s_data.data, BUFFER_SIZE);
+
+		for (uint32_t i = 0, wave_pos = 0; i < num_elements; wave_pos++)
 		{
 			new_data[i++] = wave[wave_pos % 48];
 			new_data[i++] = wave[wave_pos % 48];
