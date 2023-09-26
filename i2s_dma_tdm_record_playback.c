@@ -35,12 +35,12 @@
 #define DEMO_TDM_DATA_START_POSITION    1U
 // Increase buffer size to accommodate adding sine into one channel
 #define CHANNEL_PAIRS (4U)
-#define SAMPLE_SIZE_MS (8)
+#define SAMPLE_SIZE_MS (8U)
 #define SAMPLE_PER_MS (48)
 #define BYTES_PER_SAMPLE (4)
 #define NUM_CHANNELS (8)
 #define BUFFER_SIZE   (SAMPLE_SIZE_MS * SAMPLE_PER_MS * BYTES_PER_SAMPLE * NUM_CHANNELS)
-#define BUFFER_NUMBER (4U)
+#define BUFFER_NUMBER (8U)
 #define CONST_DATA (0xdeadbeef)
 #define M_PI 3.14159265358979323846
 
@@ -72,7 +72,7 @@ codec_config_t boardCodecConfig = {.codecDevType = kCODEC_CS42448, .codecDevConf
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t tx_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 
-static uint32_t tx_index = 1U, rx_index = 0U;
+static uint32_t tx_index = 0U, rx_index = 0U;
 
 volatile uint32_t emptyBlock = BUFFER_NUMBER;
 extern codec_config_t boardCodecConfig;
@@ -84,6 +84,7 @@ static i2s_dma_handle_t s_i2sRxHandle;
 static dma_handle_t s_i2sTxDmaHandle;
 static dma_handle_t s_i2sRxDmaHandle;
 static i2s_transfer_t xfer;
+static i2s_transfer_t tx_xfer;
 
 uint64_t evt_times[5] = {0};
 
@@ -91,14 +92,22 @@ int32_t wave[48] = {0};
 uint8_t current_evt_idx = 0;
 
 bool g_interruptEnabled = false;
+typedef struct event_s {
+    uint8_t idx;
+    uint64_t evt_times[5];
+} event_t;
 
 static uint64_t g_tick_per_us = 0;
 
 static uint64_t ostime_get_us();
 
+static event_t current_events = {.idx = 0, .evt_times = {0}};
+
 /*******************************************************************************
  * Code
  ******************************************************************************/
+static void update_evt_times(event_t *events);
+
 static void generate_wave()
 {
 	// This is generating a shit wave but it works for the moment
@@ -113,9 +122,10 @@ static void generate_wave()
 	}
 
 }
+
 void APP_GPIO_INTA_IRQHandler(void)
 {
-    evt_times[current_evt_idx++] = ostime_get_us();
+    update_evt_times(&current_events);
     /* clear the interrupt status */
     GPIO_PinClearInterruptFlag(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
     /* Change state of switch. */
@@ -155,21 +165,28 @@ static uint64_t ostime_get_us()
 
 }
 
-
-static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
+static void update_evt_times(event_t *events)
 {
-	i2s_transfer_t i2s_data = *(i2s_transfer_t *)userData;
+    events->evt_times[events->idx++] = ostime_get_us();
 
-    uint32_t *rcvd_data = (uint32_t *)i2s_data.data;
+    if (events->idx >= 5)
+    {
+        events->idx = 0;
+    }
+}
+static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
+{
 
 	int32_t *new_data = (int32_t *)(tx_Buffer + tx_index*BUFFER_SIZE);
+
+    memcpy(new_data, rcv_transfer->data, BUFFER_SIZE);
 
     // Use this to register an event
     static bool transmitting = false;
     static bool trans_rcv = false;
 
-    if (!trans_rcv && transmitting && rcvd_data[8] == wave[1] && rcvd_data[16] == wave[2]) {
-        evt_times[current_evt_idx++] = ostime_get_us();
+    if (!trans_rcv && transmitting && new_data[8] == wave[1] && new_data[16] == wave[2]) {
+        update_evt_times(&current_events);
         trans_rcv = true;
     }
 
@@ -178,13 +195,12 @@ static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t c
 	if (g_interruptEnabled){
         if (!transmitting)
         {
-            evt_times[current_evt_idx++] = ostime_get_us();
+            update_evt_times(&current_events);
             transmitting = true;
         }
 
 		uint32_t num_elements = (SAMPLE_SIZE_MS * SAMPLE_PER_MS *  NUM_CHANNELS);
 
-        memcpy(new_data, i2s_data.data, BUFFER_SIZE);
 
 		for (uint32_t i = 0, wave_pos = 0; i < num_elements; wave_pos++)
 		{
@@ -201,9 +217,9 @@ static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t c
 
     if (emptyBlock < BUFFER_NUMBER)
     {
-        xfer.data     = tx_Buffer + tx_index * BUFFER_SIZE;
-        xfer.dataSize = BUFFER_SIZE;
-        if (kStatus_Success == I2S_TxTransferSendDMA(DEMO_I2S_TX, &s_i2sTxHandle, xfer))
+        tx_xfer.data     = (uint8_t *)new_data;
+        tx_xfer.dataSize = BUFFER_SIZE;
+        if (kStatus_Success == I2S_TxTransferSendDMA(DEMO_I2S_TX, &s_i2sTxHandle, tx_xfer))
         {
             tx_index++;
         }
@@ -212,6 +228,10 @@ static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t c
             tx_index = 0U;
         }
     }
+}
+static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
+{
+
     emptyBlock--;
 }
 
@@ -219,6 +239,7 @@ static void i2s_tx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t c
 {
     emptyBlock++;
 }
+
 
 /*!
  * @brief Main function
@@ -312,9 +333,8 @@ int main(void)
     DMA_CreateHandle(&s_i2sTxDmaHandle, DEMO_DMA, DEMO_I2S_TX_CHANNEL);
     DMA_CreateHandle(&s_i2sRxDmaHandle, DEMO_DMA, DEMO_I2S_RX_CHANNEL);
 
-    // void *usrData = (void *)&xfer;
     I2S_TxTransferCreateHandleDMA(DEMO_I2S_TX, &s_i2sTxHandle, &s_i2sTxDmaHandle, i2s_tx_Callback, NULL);
-    I2S_RxTransferCreateHandleDMA(DEMO_I2S_RX, &s_i2sRxHandle, &s_i2sRxDmaHandle, i2s_rx_Callback, (void *)&xfer);
+    I2S_RxTransferCreateHandleDMA(DEMO_I2S_RX, &s_i2sRxHandle, &s_i2sRxDmaHandle, i2s_rx_Callback, NULL);
 
     /* codec initialization */
     DEMO_InitCodec();
@@ -351,11 +371,12 @@ int main(void)
             {
                 rx_index++;
             }
-            if (rx_index == BUFFER_NUMBER)
+            if (rx_index >= BUFFER_NUMBER)
             {
                 rx_index = 0U;
             }
         }
+        rcv_i2s_data(&xfer);
     }
 }
 
