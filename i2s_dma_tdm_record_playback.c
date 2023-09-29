@@ -20,36 +20,27 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define DEMO_I2S_MASTER_CLOCK_FREQUENCY CLOCK_GetMclkClkFreq()
-#define DEMO_AUDIO_SAMPLE_RATE          (48000)
-#define DEMO_AUDIO_PROTOCOL             kCODEC_BusI2S
-#define DEMO_I2S_TX                     (I2S3)
-#define DEMO_I2S_RX                     (I2S1)
-#define DEMO_DMA                        (DMA0)
-#define DEMO_I2S_TX_CHANNEL             (7)
-#define DEMO_I2S_RX_CHANNEL             (2)
-#define DEMO_I2S_CLOCK_DIVIDER          (24576000 / DEMO_AUDIO_SAMPLE_RATE / 32 / 8)
-#define DEMO_I2S_TX_MODE                kI2S_MasterSlaveNormalSlave
-#define DEMO_I2S_RX_MODE                kI2S_MasterSlaveNormalMaster
 #define DEMO_CODEC_I2C_BASEADDR         I2C2
 #define DEMO_CODEC_I2C_INSTANCE         2U
 #define DEMO_TDM_DATA_START_POSITION    1U
+
+/* Buffer related definitions */
 // Increase buffer size to accommodate adding sine into one channel
-#define CHANNEL_PAIRS (4U)
 #define SAMPLE_SIZE_MS (8U)
 #define SAMPLE_PER_MS (48)
 #define BYTES_PER_SAMPLE (4)
 #define NUM_CHANNELS (8)
 #define BUFFER_SIZE   (SAMPLE_SIZE_MS * SAMPLE_PER_MS * BYTES_PER_SAMPLE * NUM_CHANNELS)
 #define BUFFER_NUMBER (8U)
+
+/* Constants for data being pushed around */
 #define CONST_DATA (0xdeadbeef)
 #define M_PI 3.14159265358979323846
 
-// For SW2 functionality
+/* Definitions for switch usage... */
 #define APP_GPIO_INTA_IRQHandler GPIO_INTA_DriverIRQHandler
 #define APP_SW_IRQ               GPIO_INTA_IRQn
 
-/* demo audio sample rate */
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -78,12 +69,7 @@ static uint32_t tx_index = 0U, rx_index = 0U;
 volatile uint32_t emptyBlock = BUFFER_NUMBER;
 extern codec_config_t boardCodecConfig;
 codec_handle_t codecHandle;
-// static i2s_config_t s_TxConfig;
-// static i2s_config_t s_RxConfig;
-// static i2s_dma_handle_t s_i2sTxHandle;
-// static i2s_dma_handle_t s_i2sRxHandle;
-// static dma_handle_t s_i2sTxDmaHandle;
-// static dma_handle_t s_i2sRxDmaHandle;
+
 void *rxData = NULL;
 void *txData = NULL;
 static i2s_transfer_t xfer;
@@ -155,8 +141,6 @@ static void enable_sw_interrupt()
 
 static void ostime_init()
 {
-    // static bool initialized = false;
-
     CLOCK_AttachClk(kHCLK_to_OSTIMER_CLK);
     OSTIMER_Init(OSTIMER0);
 
@@ -261,7 +245,6 @@ void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
     ;
 }
 
-
 void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     emptyBlock--;
@@ -271,7 +254,6 @@ void i2s_tx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completi
 {
     emptyBlock++;
 }
-
 
 /*!
  * @brief Main function
@@ -293,21 +275,6 @@ int main(void)
 
     CLOCK_EnableClock(kCLOCK_InputMux);
 
-    /* Most clock logic moved to clock_config in core->boards->mimxrt685audevk.
-     * The reason for this change is for the sake of consistency - using the config
-     * tool to organize and layout the pins and clocks seems like the best approach.
-     */
-    /* I2C */
-    // CLOCK_AttachClk(kFFRO_to_FLEXCOMM2);
-
-    /* attach AUDIO PLL clock to FLEXCOMM1 (I2S1) */
-    // CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM1);
-    /* attach AUDIO PLL clock to FLEXCOMM3 (I2S3) */
-    // CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM3);
-
-    /* attach AUDIO PLL clock to MCLK */
-    // CLOCK_AttachClk(kAUDIO_PLL_to_MCLK_CLK);
-    // CLOCK_SetClkDiv(kCLOCK_DivMclkClk, 1);
     SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
 
     ostime_init();
@@ -317,85 +284,18 @@ int main(void)
 
     PRINTF("I2S TDM record playback example started!\n\r");
 
-    /* i2s configurations */
-    /*
-     * masterSlave = kI2S_MasterSlaveNormalMaster;
-     * mode = kI2S_ModeI2sClassic;
-     * rightLow = false;
-     * leftJust = false;
-     * pdmData = false;
-     * sckPol = false;
-     * wsPol = false;
-     * divider = 1;
-     * oneChannel = false;
-     * dataLength = 16;
-     * frameLength = 32;
-     * position = 0;
-     * fifoLevel = 4;
-     */
-    // I2S_TxGetDefaultConfig(&s_TxConfig);
-    // s_TxConfig.divider     = DEMO_I2S_CLOCK_DIVIDER;
-    // s_TxConfig.mode        = kI2S_ModeDspWsShort;
-    // s_TxConfig.wsPol       = true;
-    // s_TxConfig.dataLength  = 32U;
-    // s_TxConfig.frameLength = 32 * 8U;
-    // s_TxConfig.position    = DEMO_TDM_DATA_START_POSITION;
-
-    // I2S_TxInit(DEMO_I2S_TX, &s_TxConfig);
-    // I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel1, false, 64 + DEMO_TDM_DATA_START_POSITION);
-    // I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel2, false, 128 + DEMO_TDM_DATA_START_POSITION);
-    // I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel3, false, 192 + DEMO_TDM_DATA_START_POSITION);
-
-    /* i2s configurations */
-    // I2S_RxGetDefaultConfig(&s_RxConfig);
-    // s_RxConfig.divider     = DEMO_I2S_CLOCK_DIVIDER;
-    // s_RxConfig.masterSlave = kI2S_MasterSlaveNormalMaster;
-    // s_RxConfig.mode        = kI2S_ModeDspWsShort;
-    // s_RxConfig.wsPol       = true;
-    // s_RxConfig.dataLength  = 32U;
-    // s_RxConfig.frameLength = 32 * 8U;
-    // s_RxConfig.position    = DEMO_TDM_DATA_START_POSITION;
-
-    // I2S_RxInit(DEMO_I2S_RX, &s_RxConfig);
-    // I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel1, false, 64 + DEMO_TDM_DATA_START_POSITION);
-    // I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel2, false, 128 + DEMO_TDM_DATA_START_POSITION);
-    // I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel3, false, 192 + DEMO_TDM_DATA_START_POSITION);
-
-    // DMA_Init(DEMO_DMA);
-
-    // DMA_EnableChannel(DEMO_DMA, DEMO_I2S_TX_CHANNEL);
-    // DMA_EnableChannel(DEMO_DMA, DEMO_I2S_RX_CHANNEL);
-    // DMA_SetChannelPriority(DEMO_DMA, DEMO_I2S_TX_CHANNEL, kDMA_ChannelPriority3);
-    // DMA_SetChannelPriority(DEMO_DMA, DEMO_I2S_RX_CHANNEL, kDMA_ChannelPriority2);
-    // DMA_CreateHandle(&s_i2sTxDmaHandle, DEMO_DMA, DEMO_I2S_TX_CHANNEL);
-    // DMA_CreateHandle(&s_i2sRxDmaHandle, DEMO_DMA, DEMO_I2S_RX_CHANNEL);
-
-    // I2S_TxTransferCreateHandleDMA(DEMO_I2S_TX, &s_i2sTxHandle, &s_i2sTxDmaHandle, i2s_tx_Callback, NULL);
-    // I2S_RxTransferCreateHandleDMA(DEMO_I2S_RX, &s_i2sRxHandle, &s_i2sRxDmaHandle, i2s_rx_Callback, NULL);
-
     /* codec initialization */
     DEMO_InitCodec();
 
     PRINTF("Starting TDM record playback\n\r");
-    GPIO_PinWrite(GPIO, LED_BLUE_PORT, LED_BLUE_PIN, 0U);
-    /* Port masking */
-    GPIO_PortMaskedSet(GPIO, LED_BLUE_PORT, 0x0000FFFF);
-    GPIO_PortMaskedWrite(GPIO, LED_BLUE_PORT, 0xFFFFFFFF);
-    uint32_t port_state = GPIO_PortRead(GPIO, LED_BLUE_PORT);
-    PRINTF("\r\n Standard port read: %x\r\n", port_state);
-    port_state = GPIO_PortMaskedRead(GPIO, LED_BLUE_PORT);
-    PRINTF("\r\n Masked port read: %x\r\n", port_state);
-    GPIO_PinWrite(GPIO, LED_BLUE_PORT, LED_BLUE_PIN, 1U);
-    GPIO_PortToggle(GPIO, LED_BLUE_PORT, 1u << LED_BLUE_PIN);
 
-    port_state = GPIO_PortRead(GPIO, LED_BLUE_PORT);
-    PRINTF("\r\n Standard port read: %x\r\n", port_state);
-
+    /* Initialize buffer */
 	for (uint32_t i = 0; i < BUFFER_SIZE * BUFFER_NUMBER; i++)
 	{
 		tx_Buffer[i] = rcv_Buffer[i] =  0;
 	}
 
+    /* Generate wave for I2S transmission */
     generate_wave();
 
     while (1)
