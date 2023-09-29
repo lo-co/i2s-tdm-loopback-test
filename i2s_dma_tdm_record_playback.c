@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include "fsl_cs42448.h"
 #include "math.h"
+#include "board/peripherals.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -252,6 +253,13 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
         }
     }
 }
+void * fc5RxData = NULL;
+void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
+{
+    ;
+}
+
+
 static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     emptyBlock--;
@@ -271,6 +279,7 @@ int main(void)
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
+    BOARD_InitBootPeripherals();
 
     // Enable GPIO Ports...not certain why this not done in the pin mux functionality
     // Don't understand - all this does is enable the clocks for these ports but this
@@ -282,17 +291,21 @@ int main(void)
 
     CLOCK_EnableClock(kCLOCK_InputMux);
 
+    /* Most clock logic moved to clock_config in core->boards->mimxrt685audevk.
+     * The reason for this change is for the sake of consistency - using the config
+     * tool to organize and layout the pins and clocks seems like the best approach.
+     */
     /* I2C */
-    CLOCK_AttachClk(kFFRO_to_FLEXCOMM2);
+    // CLOCK_AttachClk(kFFRO_to_FLEXCOMM2);
 
     /* attach AUDIO PLL clock to FLEXCOMM1 (I2S1) */
-    CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM1);
+    // CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM1);
     /* attach AUDIO PLL clock to FLEXCOMM3 (I2S3) */
-    CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM3);
+    // CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM3);
 
     /* attach AUDIO PLL clock to MCLK */
-    CLOCK_AttachClk(kAUDIO_PLL_to_MCLK_CLK);
-    CLOCK_SetClkDiv(kCLOCK_DivMclkClk, 1);
+    // CLOCK_AttachClk(kAUDIO_PLL_to_MCLK_CLK);
+    // CLOCK_SetClkDiv(kCLOCK_DivMclkClk, 1);
     SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
 
     ostime_init();
