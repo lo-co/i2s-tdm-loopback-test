@@ -78,12 +78,14 @@ static uint32_t tx_index = 0U, rx_index = 0U;
 volatile uint32_t emptyBlock = BUFFER_NUMBER;
 extern codec_config_t boardCodecConfig;
 codec_handle_t codecHandle;
-static i2s_config_t s_TxConfig;
-static i2s_config_t s_RxConfig;
-static i2s_dma_handle_t s_i2sTxHandle;
-static i2s_dma_handle_t s_i2sRxHandle;
-static dma_handle_t s_i2sTxDmaHandle;
-static dma_handle_t s_i2sRxDmaHandle;
+// static i2s_config_t s_TxConfig;
+// static i2s_config_t s_RxConfig;
+// static i2s_dma_handle_t s_i2sTxHandle;
+// static i2s_dma_handle_t s_i2sRxHandle;
+// static dma_handle_t s_i2sTxDmaHandle;
+// static dma_handle_t s_i2sRxDmaHandle;
+void *rxData = NULL;
+void *txData = NULL;
 static i2s_transfer_t xfer;
 static i2s_transfer_t tx_xfer;
 
@@ -243,7 +245,7 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
     {
         tx_xfer.data     = (uint8_t *)new_data;
         tx_xfer.dataSize = BUFFER_SIZE;
-        if (kStatus_Success == I2S_TxTransferSendDMA(DEMO_I2S_TX, &s_i2sTxHandle, tx_xfer))
+        if (kStatus_Success == I2S_TxTransferSendDMA(FLEXCOMM3_PERIPHERAL, &i2sTxHandle, tx_xfer))
         {
             tx_index++;
         }
@@ -260,12 +262,12 @@ void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 }
 
 
-static void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
+void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     emptyBlock--;
 }
 
-static void i2s_tx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
+void i2s_tx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     emptyBlock++;
 }
@@ -331,45 +333,45 @@ int main(void)
      * position = 0;
      * fifoLevel = 4;
      */
-    I2S_TxGetDefaultConfig(&s_TxConfig);
-    s_TxConfig.divider     = DEMO_I2S_CLOCK_DIVIDER;
-    s_TxConfig.mode        = kI2S_ModeDspWsShort;
-    s_TxConfig.wsPol       = true;
-    s_TxConfig.dataLength  = 32U;
-    s_TxConfig.frameLength = 32 * 8U;
-    s_TxConfig.position    = DEMO_TDM_DATA_START_POSITION;
+    // I2S_TxGetDefaultConfig(&s_TxConfig);
+    // s_TxConfig.divider     = DEMO_I2S_CLOCK_DIVIDER;
+    // s_TxConfig.mode        = kI2S_ModeDspWsShort;
+    // s_TxConfig.wsPol       = true;
+    // s_TxConfig.dataLength  = 32U;
+    // s_TxConfig.frameLength = 32 * 8U;
+    // s_TxConfig.position    = DEMO_TDM_DATA_START_POSITION;
 
-    I2S_TxInit(DEMO_I2S_TX, &s_TxConfig);
-    I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel1, false, 64 + DEMO_TDM_DATA_START_POSITION);
-    I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel2, false, 128 + DEMO_TDM_DATA_START_POSITION);
-    I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel3, false, 192 + DEMO_TDM_DATA_START_POSITION);
+    // I2S_TxInit(DEMO_I2S_TX, &s_TxConfig);
+    // I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel1, false, 64 + DEMO_TDM_DATA_START_POSITION);
+    // I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel2, false, 128 + DEMO_TDM_DATA_START_POSITION);
+    // I2S_EnableSecondaryChannel(DEMO_I2S_TX, kI2S_SecondaryChannel3, false, 192 + DEMO_TDM_DATA_START_POSITION);
 
     /* i2s configurations */
-    I2S_RxGetDefaultConfig(&s_RxConfig);
-    s_RxConfig.divider     = DEMO_I2S_CLOCK_DIVIDER;
-    s_RxConfig.masterSlave = kI2S_MasterSlaveNormalMaster;
-    s_RxConfig.mode        = kI2S_ModeDspWsShort;
-    s_RxConfig.wsPol       = true;
-    s_RxConfig.dataLength  = 32U;
-    s_RxConfig.frameLength = 32 * 8U;
-    s_RxConfig.position    = DEMO_TDM_DATA_START_POSITION;
+    // I2S_RxGetDefaultConfig(&s_RxConfig);
+    // s_RxConfig.divider     = DEMO_I2S_CLOCK_DIVIDER;
+    // s_RxConfig.masterSlave = kI2S_MasterSlaveNormalMaster;
+    // s_RxConfig.mode        = kI2S_ModeDspWsShort;
+    // s_RxConfig.wsPol       = true;
+    // s_RxConfig.dataLength  = 32U;
+    // s_RxConfig.frameLength = 32 * 8U;
+    // s_RxConfig.position    = DEMO_TDM_DATA_START_POSITION;
 
-    I2S_RxInit(DEMO_I2S_RX, &s_RxConfig);
-    I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel1, false, 64 + DEMO_TDM_DATA_START_POSITION);
-    I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel2, false, 128 + DEMO_TDM_DATA_START_POSITION);
-    I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel3, false, 192 + DEMO_TDM_DATA_START_POSITION);
+    // I2S_RxInit(DEMO_I2S_RX, &s_RxConfig);
+    // I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel1, false, 64 + DEMO_TDM_DATA_START_POSITION);
+    // I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel2, false, 128 + DEMO_TDM_DATA_START_POSITION);
+    // I2S_EnableSecondaryChannel(DEMO_I2S_RX, kI2S_SecondaryChannel3, false, 192 + DEMO_TDM_DATA_START_POSITION);
 
-    DMA_Init(DEMO_DMA);
+    // DMA_Init(DEMO_DMA);
 
-    DMA_EnableChannel(DEMO_DMA, DEMO_I2S_TX_CHANNEL);
-    DMA_EnableChannel(DEMO_DMA, DEMO_I2S_RX_CHANNEL);
-    DMA_SetChannelPriority(DEMO_DMA, DEMO_I2S_TX_CHANNEL, kDMA_ChannelPriority3);
-    DMA_SetChannelPriority(DEMO_DMA, DEMO_I2S_RX_CHANNEL, kDMA_ChannelPriority2);
-    DMA_CreateHandle(&s_i2sTxDmaHandle, DEMO_DMA, DEMO_I2S_TX_CHANNEL);
-    DMA_CreateHandle(&s_i2sRxDmaHandle, DEMO_DMA, DEMO_I2S_RX_CHANNEL);
+    // DMA_EnableChannel(DEMO_DMA, DEMO_I2S_TX_CHANNEL);
+    // DMA_EnableChannel(DEMO_DMA, DEMO_I2S_RX_CHANNEL);
+    // DMA_SetChannelPriority(DEMO_DMA, DEMO_I2S_TX_CHANNEL, kDMA_ChannelPriority3);
+    // DMA_SetChannelPriority(DEMO_DMA, DEMO_I2S_RX_CHANNEL, kDMA_ChannelPriority2);
+    // DMA_CreateHandle(&s_i2sTxDmaHandle, DEMO_DMA, DEMO_I2S_TX_CHANNEL);
+    // DMA_CreateHandle(&s_i2sRxDmaHandle, DEMO_DMA, DEMO_I2S_RX_CHANNEL);
 
-    I2S_TxTransferCreateHandleDMA(DEMO_I2S_TX, &s_i2sTxHandle, &s_i2sTxDmaHandle, i2s_tx_Callback, NULL);
-    I2S_RxTransferCreateHandleDMA(DEMO_I2S_RX, &s_i2sRxHandle, &s_i2sRxDmaHandle, i2s_rx_Callback, NULL);
+    // I2S_TxTransferCreateHandleDMA(DEMO_I2S_TX, &s_i2sTxHandle, &s_i2sTxDmaHandle, i2s_tx_Callback, NULL);
+    // I2S_RxTransferCreateHandleDMA(DEMO_I2S_RX, &s_i2sRxHandle, &s_i2sRxDmaHandle, i2s_rx_Callback, NULL);
 
     /* codec initialization */
     DEMO_InitCodec();
@@ -402,7 +404,7 @@ int main(void)
         {
             xfer.data     = rcv_Buffer + rx_index * BUFFER_SIZE;
             xfer.dataSize = BUFFER_SIZE;
-            if (kStatus_Success == I2S_RxTransferReceiveDMA(DEMO_I2S_RX, &s_i2sRxHandle, xfer))
+            if (kStatus_Success == I2S_RxTransferReceiveDMA(FLEXCOMM1_PERIPHERAL, &i2sRxHandle, xfer))
             {
                 rx_index++;
             }

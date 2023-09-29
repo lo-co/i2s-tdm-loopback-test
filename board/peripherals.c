@@ -71,6 +71,8 @@ instance:
     - dma_table:
       - 0: []
       - 1: []
+      - 2: []
+      - 3: []
     - dma_channels: []
     - init_interrupt: 'false'
     - dma_interrupt:
@@ -130,7 +132,7 @@ instance:
       - usage: 'playback'
       - masterSlave: 'kI2S_MasterSlaveNormalMaster'
       - sckPolM: 'false'
-      - wsPolM: 'false'
+      - wsPolM: 'true'
       - clockConfig:
         - sampleRate_Hz: 'kSAI_SampleRate48KHz'
         - clockSource: 'FXCOMFunctionClock'
@@ -178,7 +180,7 @@ const i2s_config_t FC4_I2S_TX_config = {
   .rightLow = false,
   .leftJust = false,
   .sckPol = false,
-  .wsPol = false,
+  .wsPol = true,
   .divider = 2,
   .oneChannel = false,
   .dataLength = 32,
@@ -229,7 +231,7 @@ instance:
       - usage: 'record'
       - masterSlave: 'kI2S_MasterSlaveNormalMaster'
       - sckPolM: 'false'
-      - wsPolM: 'false'
+      - wsPolM: 'true'
       - clockConfig:
         - sampleRate_Hz: 'kSAI_SampleRate48KHz'
         - clockSource: 'FXCOMFunctionClock'
@@ -277,7 +279,7 @@ const i2s_config_t FC5_I2S_RX_config = {
   .rightLow = false,
   .leftJust = false,
   .sckPol = false,
-  .wsPol = false,
+  .wsPol = true,
   .divider = 2,
   .oneChannel = false,
   .dataLength = 32,
@@ -310,6 +312,205 @@ static void FC5_I2S_RX_init(void) {
 }
 
 /***********************************************************************************************************************
+ * FLEXCOMM3 initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'FLEXCOMM3'
+- type: 'flexcomm_i2s'
+- mode: 'dma'
+- custom_name_enabled: 'false'
+- type_id: 'flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5'
+- functional_group: 'BOARD_InitPeripherals'
+- peripheral: 'FLEXCOMM3'
+- config_sets:
+  - fsl_i2s:
+    - i2s_config:
+      - usage: 'playback'
+      - masterSlave: 'kI2S_MasterSlaveNormalMaster'
+      - sckPolM: 'false'
+      - wsPolM: 'true'
+      - clockConfig:
+        - sampleRate_Hz: 'kSAI_SampleRate48KHz'
+        - clockSource: 'FXCOMFunctionClock'
+        - clockSourceFreq: 'ClocksTool_DefaultInit'
+        - masterClockDependency: 'false'
+      - mode: 'kI2S_ModeDspWsShort'
+      - dataLengthM: '32'
+      - stereo: 'kSAI_Stereo'
+      - positionM: '0'
+      - secondary_channels_array:
+        - 0:
+          - stereo: 'kSAI_Stereo'
+          - positionM: '64'
+        - 1:
+          - stereo: 'kSAI_Stereo'
+          - positionM: '128'
+        - 2:
+          - stereo: 'kSAI_Stereo'
+          - positionM: '192'
+      - frameLengthM: '256'
+      - rightLow: 'false'
+      - leftJust: 'false'
+      - watermarkM_Tx: 'ki2s_TxFifo4'
+      - txEmptyZeroTx: 'true'
+      - pack48: 'false'
+  - dmaCfg:
+    - dma_channels:
+      - dma_tx_channel:
+        - DMA_source: 'kDma0RequestFlexcomm3Tx'
+        - init_channel_priority: 'true'
+        - dma_priority: 'kDMA_ChannelPriority3'
+        - enable_custom_name: 'true'
+        - handle_custom_name: 'i2sTxDmaHandle'
+    - i2s_dma_handle:
+      - enable_custom_name: 'true'
+      - handle_custom_name: 'i2sTxHandle'
+      - init_callback: 'true'
+      - callback_fcn: 'i2s_tx_Callback'
+      - user_data: 'txData'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+/* Flexcomm I2S configuration */
+const i2s_config_t FLEXCOMM3_config = {
+  .masterSlave = kI2S_MasterSlaveNormalMaster,
+  .mode = kI2S_ModeDspWsShort,
+  .rightLow = false,
+  .leftJust = false,
+  .sckPol = false,
+  .wsPol = true,
+  .divider = 2,
+  .oneChannel = false,
+  .dataLength = 32,
+  .frameLength = 256,
+  .position = 0,
+  .watermark = 4,
+  .txEmptyZero = true,
+  .pack48 = false
+};
+dma_handle_t i2sTxDmaHandle;
+i2s_dma_handle_t i2sTxHandle;
+
+static void FLEXCOMM3_init(void) {
+  /* Flexcomm I2S initialization */
+  I2S_TxInit(FLEXCOMM3_PERIPHERAL, &FLEXCOMM3_config);
+  /* Setup secondary channel 1 */
+  I2S_EnableSecondaryChannel(FLEXCOMM3_PERIPHERAL, kI2S_SecondaryChannel1, false, 64U);
+  /* Setup secondary channel 2 */
+  I2S_EnableSecondaryChannel(FLEXCOMM3_PERIPHERAL, kI2S_SecondaryChannel2, false, 128U);
+  /* Setup secondary channel 3 */
+  I2S_EnableSecondaryChannel(FLEXCOMM3_PERIPHERAL, kI2S_SecondaryChannel3, false, 192U);
+  /* Enable the DMA 7 channel in the DMA */
+  DMA_EnableChannel(FLEXCOMM3_TX_DMA_BASEADDR, FLEXCOMM3_TX_DMA_CHANNEL);
+  /* Set the DMA 7 channel priority */
+  DMA_SetChannelPriority(FLEXCOMM3_TX_DMA_BASEADDR, FLEXCOMM3_TX_DMA_CHANNEL, kDMA_ChannelPriority3);
+  /* Create the DMA i2sTxDmaHandle handle */
+  DMA_CreateHandle(&i2sTxDmaHandle, FLEXCOMM3_TX_DMA_BASEADDR, FLEXCOMM3_TX_DMA_CHANNEL);
+  /* Create the I2S DMA handle */
+  I2S_TxTransferCreateHandleDMA(FLEXCOMM3_PERIPHERAL, &i2sTxHandle, &i2sTxDmaHandle, i2s_tx_Callback, txData);
+}
+
+/***********************************************************************************************************************
+ * FLEXCOMM1 initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'FLEXCOMM1'
+- type: 'flexcomm_i2s'
+- mode: 'dma'
+- custom_name_enabled: 'false'
+- type_id: 'flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5'
+- functional_group: 'BOARD_InitPeripherals'
+- peripheral: 'FLEXCOMM1'
+- config_sets:
+  - fsl_i2s:
+    - i2s_config:
+      - usage: 'record'
+      - masterSlave: 'kI2S_MasterSlaveNormalMaster'
+      - sckPolM: 'false'
+      - wsPolM: 'true'
+      - clockConfig:
+        - sampleRate_Hz: 'kSAI_SampleRate48KHz'
+        - clockSource: 'FXCOMFunctionClock'
+        - clockSourceFreq: 'ClocksTool_DefaultInit'
+        - masterClockDependency: 'false'
+      - mode: 'kI2S_ModeDspWsShort'
+      - dataLengthM: '32'
+      - stereo: 'kSAI_Stereo'
+      - positionM: '0'
+      - secondary_channels_array:
+        - 0:
+          - stereo: 'kSAI_Stereo'
+          - positionM: '64'
+        - 1:
+          - stereo: 'kSAI_Stereo'
+          - positionM: '128'
+        - 2:
+          - stereo: 'kSAI_Stereo'
+          - positionM: '192'
+      - frameLengthM: '256'
+      - rightLow: 'false'
+      - leftJust: 'false'
+      - watermarkM_Rx: 'ki2s_RxFifo5'
+      - pack48: 'false'
+  - dmaCfg:
+    - dma_channels:
+      - dma_rx_channel:
+        - DMA_source: 'kDma0RequestFlexcomm1Rx'
+        - init_channel_priority: 'true'
+        - dma_priority: 'kDMA_ChannelPriority2'
+        - enable_custom_name: 'true'
+        - handle_custom_name: 'i2sRxDmaHandle'
+    - i2s_dma_handle:
+      - enable_custom_name: 'true'
+      - handle_custom_name: 'i2sRxHandle'
+      - init_callback: 'true'
+      - callback_fcn: 'i2s_rx_Callback'
+      - user_data: 'rxData'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+/* Flexcomm I2S configuration */
+const i2s_config_t FLEXCOMM1_config = {
+  .masterSlave = kI2S_MasterSlaveNormalMaster,
+  .mode = kI2S_ModeDspWsShort,
+  .rightLow = false,
+  .leftJust = false,
+  .sckPol = false,
+  .wsPol = true,
+  .divider = 2,
+  .oneChannel = false,
+  .dataLength = 32,
+  .frameLength = 256,
+  .position = 0,
+  .watermark = 4,
+  .txEmptyZero = false,
+  .pack48 = false
+};
+dma_handle_t i2sRxDmaHandle;
+i2s_dma_handle_t i2sRxHandle;
+
+static void FLEXCOMM1_init(void) {
+  /* Flexcomm I2S initialization */
+  I2S_RxInit(FLEXCOMM1_PERIPHERAL, &FLEXCOMM1_config);
+  /* Setup secondary channel 1 */
+  I2S_EnableSecondaryChannel(FLEXCOMM1_PERIPHERAL, kI2S_SecondaryChannel1, false, 64U);
+  /* Setup secondary channel 2 */
+  I2S_EnableSecondaryChannel(FLEXCOMM1_PERIPHERAL, kI2S_SecondaryChannel2, false, 128U);
+  /* Setup secondary channel 3 */
+  I2S_EnableSecondaryChannel(FLEXCOMM1_PERIPHERAL, kI2S_SecondaryChannel3, false, 192U);
+  /* Enable the DMA 2 channel in the DMA */
+  DMA_EnableChannel(FLEXCOMM1_RX_DMA_BASEADDR, FLEXCOMM1_RX_DMA_CHANNEL);
+  /* Set the DMA 2 channel priority */
+  DMA_SetChannelPriority(FLEXCOMM1_RX_DMA_BASEADDR, FLEXCOMM1_RX_DMA_CHANNEL, kDMA_ChannelPriority2);
+  /* Create the DMA i2sRxDmaHandle handle */
+  DMA_CreateHandle(&i2sRxDmaHandle, FLEXCOMM1_RX_DMA_BASEADDR, FLEXCOMM1_RX_DMA_CHANNEL);
+  /* Create the I2S DMA handle */
+  I2S_RxTransferCreateHandleDMA(FLEXCOMM1_PERIPHERAL, &i2sRxHandle, &i2sRxDmaHandle, i2s_rx_Callback, rxData);
+}
+
+/***********************************************************************************************************************
  * Initialization functions
  **********************************************************************************************************************/
 void BOARD_InitPeripherals(void)
@@ -320,6 +521,8 @@ void BOARD_InitPeripherals(void)
   /* Initialize components */
   FC4_I2S_TX_init();
   FC5_I2S_RX_init();
+  FLEXCOMM3_init();
+  FLEXCOMM1_init();
 }
 
 /***********************************************************************************************************************

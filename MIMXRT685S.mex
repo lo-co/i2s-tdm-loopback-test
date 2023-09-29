@@ -470,6 +470,66 @@
                         <data type="Version">2.1.0</data>
                      </feature>
                   </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="FLEXCOMM3.i2s_sck" description="Signal I2S clock signal SCK is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="FLEXCOMM3.i2s_ws" description="Signal I2S word select signal WS is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="FLEXCOMM3.i2s_data" description="Signal I2S data signal SDA is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="ClockOutput" resourceId="FXCOM3_clock" description="FXCOM3 clock is inactive." problem_level="2" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="frequency" evaluation="greaterThan">
+                        <data type="Frequency" unit="Hz">0</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="SWComponent" resourceId="platform.drivers.flexcomm_i2s_dma" description="The flexcomm_i2s_dma (fsl_i2s_dma.c) driver is missing in the project  (required for the DMA mode)." problem_level="2" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="enabled" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="SWComponent" resourceId="platform.drivers.flexcomm_i2s_dma" description="The compatible version of the flexcomm_i2s_dma (fsl_i2s_dma.c) driver is not available in the project  (required for the DMA mode)." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="version" evaluation="compatible">
+                        <data type="Version">2.1.0</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="FLEXCOMM1.i2s_sck" description="Signal I2S clock signal SCK is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="FLEXCOMM1.i2s_ws" description="Signal I2S word select signal WS is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="FLEXCOMM1.i2s_data" description="Signal I2S data signal SDA is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="ClockOutput" resourceId="FXCOM1_clock" description="FXCOM1 clock is inactive." problem_level="2" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="frequency" evaluation="greaterThan">
+                        <data type="Frequency" unit="Hz">0</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="SWComponent" resourceId="platform.drivers.flexcomm_i2s_dma" description="The flexcomm_i2s_dma (fsl_i2s_dma.c) driver is missing in the project  (required for the DMA mode)." problem_level="2" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="enabled" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="SWComponent" resourceId="platform.drivers.flexcomm_i2s_dma" description="The compatible version of the flexcomm_i2s_dma (fsl_i2s_dma.c) driver is not available in the project  (required for the DMA mode)." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="version" evaluation="compatible">
+                        <data type="Version">2.1.0</data>
+                     </feature>
+                  </dependency>
                </dependencies>
                <instances>
                   <instance name="NVIC" uuid="a76afd07-b04d-41a2-ace9-b9296c5c7c8b" type="nvic" type_id="nvic_57b5eef3774cc60acaede6f5b8bddc67" mode="general" peripheral="NVIC" enabled="true" comment="" custom_name_enabled="false" editing_lock="false">
@@ -484,7 +544,7 @@
                            <setting name="usage" value="playback"/>
                            <setting name="masterSlave" value="kI2S_MasterSlaveNormalMaster"/>
                            <setting name="sckPolM" value="false"/>
-                           <setting name="wsPolM" value="false"/>
+                           <setting name="wsPolM" value="true"/>
                            <struct name="clockConfig">
                               <setting name="sampleRate_Hz" value="kSAI_SampleRate48KHz"/>
                               <setting name="clockSource" value="FXCOMFunctionClock"/>
@@ -540,6 +600,8 @@
                         <array name="dma_table">
                            <struct name="0"/>
                            <struct name="1"/>
+                           <struct name="2"/>
+                           <struct name="3"/>
                         </array>
                         <array name="dma_channels"/>
                         <setting name="init_interrupt" value="false"/>
@@ -558,7 +620,7 @@
                            <setting name="usage" value="record"/>
                            <setting name="masterSlave" value="kI2S_MasterSlaveNormalMaster"/>
                            <setting name="sckPolM" value="false"/>
-                           <setting name="wsPolM" value="false"/>
+                           <setting name="wsPolM" value="true"/>
                            <struct name="clockConfig">
                               <setting name="sampleRate_Hz" value="kSAI_SampleRate48KHz"/>
                               <setting name="clockSource" value="FXCOMFunctionClock"/>
@@ -606,6 +668,121 @@
                            <setting name="init_callback" value="true"/>
                            <setting name="callback_fcn" value="fc5_i2s_rx_cb"/>
                            <setting name="user_data" value="fc5RxData"/>
+                        </struct>
+                     </config_set>
+                  </instance>
+                  <instance name="FLEXCOMM3" uuid="f58d8016-a03b-469f-8f66-928abf050589" type="flexcomm_i2s" type_id="flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5" mode="dma" peripheral="FLEXCOMM3" enabled="true" comment="" custom_name_enabled="false" editing_lock="false">
+                     <config_set name="fsl_i2s">
+                        <struct name="i2s_config">
+                           <setting name="usage" value="playback"/>
+                           <setting name="masterSlave" value="kI2S_MasterSlaveNormalMaster"/>
+                           <setting name="sckPolM" value="false"/>
+                           <setting name="wsPolM" value="true"/>
+                           <struct name="clockConfig">
+                              <setting name="sampleRate_Hz" value="kSAI_SampleRate48KHz"/>
+                              <setting name="clockSource" value="FXCOMFunctionClock"/>
+                              <setting name="clockSourceFreq" value="ClocksTool_DefaultInit"/>
+                              <setting name="masterClockDependency" value="false"/>
+                           </struct>
+                           <setting name="mode" value="kI2S_ModeDspWsShort"/>
+                           <setting name="dataLengthM" value="32"/>
+                           <setting name="stereo" value="kSAI_Stereo"/>
+                           <setting name="positionM" value="0"/>
+                           <array name="secondary_channels_array">
+                              <struct name="0">
+                                 <setting name="stereo" value="kSAI_Stereo"/>
+                                 <setting name="positionM" value="64"/>
+                              </struct>
+                              <struct name="1">
+                                 <setting name="stereo" value="kSAI_Stereo"/>
+                                 <setting name="positionM" value="128"/>
+                              </struct>
+                              <struct name="2">
+                                 <setting name="stereo" value="kSAI_Stereo"/>
+                                 <setting name="positionM" value="192"/>
+                              </struct>
+                           </array>
+                           <setting name="frameLengthM" value="256"/>
+                           <setting name="rightLow" value="false"/>
+                           <setting name="leftJust" value="false"/>
+                           <setting name="watermarkM_Tx" value="ki2s_TxFifo4"/>
+                           <setting name="txEmptyZeroTx" value="true"/>
+                           <setting name="pack48" value="false"/>
+                        </struct>
+                     </config_set>
+                     <config_set name="dmaCfg">
+                        <struct name="dma_channels">
+                           <struct name="dma_tx_channel">
+                              <setting name="DMA_source" value="kDma0RequestFlexcomm3Tx"/>
+                              <setting name="init_channel_priority" value="true"/>
+                              <setting name="dma_priority" value="kDMA_ChannelPriority3"/>
+                              <setting name="enable_custom_name" value="true"/>
+                              <setting name="handle_custom_name" value="i2sTxDmaHandle"/>
+                           </struct>
+                        </struct>
+                        <struct name="i2s_dma_handle">
+                           <setting name="enable_custom_name" value="true"/>
+                           <setting name="handle_custom_name" value="i2sTxHandle"/>
+                           <setting name="init_callback" value="true"/>
+                           <setting name="callback_fcn" value="i2s_tx_Callback"/>
+                           <setting name="user_data" value="txData"/>
+                        </struct>
+                     </config_set>
+                  </instance>
+                  <instance name="FLEXCOMM1" uuid="1eb88b98-7e27-48e3-bdf3-05d4099249e2" type="flexcomm_i2s" type_id="flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5" mode="dma" peripheral="FLEXCOMM1" enabled="true" comment="" custom_name_enabled="false" editing_lock="false">
+                     <config_set name="fsl_i2s">
+                        <struct name="i2s_config">
+                           <setting name="usage" value="record"/>
+                           <setting name="masterSlave" value="kI2S_MasterSlaveNormalMaster"/>
+                           <setting name="sckPolM" value="false"/>
+                           <setting name="wsPolM" value="true"/>
+                           <struct name="clockConfig">
+                              <setting name="sampleRate_Hz" value="kSAI_SampleRate48KHz"/>
+                              <setting name="clockSource" value="FXCOMFunctionClock"/>
+                              <setting name="clockSourceFreq" value="ClocksTool_DefaultInit"/>
+                              <setting name="masterClockDependency" value="false"/>
+                           </struct>
+                           <setting name="mode" value="kI2S_ModeDspWsShort"/>
+                           <setting name="dataLengthM" value="32"/>
+                           <setting name="stereo" value="kSAI_Stereo"/>
+                           <setting name="positionM" value="0"/>
+                           <array name="secondary_channels_array">
+                              <struct name="0">
+                                 <setting name="stereo" value="kSAI_Stereo"/>
+                                 <setting name="positionM" value="64"/>
+                              </struct>
+                              <struct name="1">
+                                 <setting name="stereo" value="kSAI_Stereo"/>
+                                 <setting name="positionM" value="128"/>
+                              </struct>
+                              <struct name="2">
+                                 <setting name="stereo" value="kSAI_Stereo"/>
+                                 <setting name="positionM" value="192"/>
+                              </struct>
+                           </array>
+                           <setting name="frameLengthM" value="256"/>
+                           <setting name="rightLow" value="false"/>
+                           <setting name="leftJust" value="false"/>
+                           <setting name="watermarkM_Rx" value="ki2s_RxFifo5"/>
+                           <setting name="pack48" value="false"/>
+                        </struct>
+                     </config_set>
+                     <config_set name="dmaCfg">
+                        <struct name="dma_channels">
+                           <struct name="dma_rx_channel">
+                              <setting name="DMA_source" value="kDma0RequestFlexcomm1Rx"/>
+                              <setting name="init_channel_priority" value="true"/>
+                              <setting name="dma_priority" value="kDMA_ChannelPriority2"/>
+                              <setting name="enable_custom_name" value="true"/>
+                              <setting name="handle_custom_name" value="i2sRxDmaHandle"/>
+                           </struct>
+                        </struct>
+                        <struct name="i2s_dma_handle">
+                           <setting name="enable_custom_name" value="true"/>
+                           <setting name="handle_custom_name" value="i2sRxHandle"/>
+                           <setting name="init_callback" value="true"/>
+                           <setting name="callback_fcn" value="i2s_rx_Callback"/>
+                           <setting name="user_data" value="rxData"/>
                         </struct>
                      </config_set>
                   </instance>
