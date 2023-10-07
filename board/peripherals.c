@@ -138,7 +138,7 @@ instance:
         - clockSource: 'FXCOMFunctionClock'
         - clockSourceFreq: 'ClocksTool_DefaultInit'
         - masterClockDependency: 'false'
-      - mode: 'kI2S_ModeDspWsShort'
+      - mode: 'kI2S_ModeDspWs50'
       - dataLengthM: '32'
       - stereo: 'kSAI_Stereo'
       - positionM: '0'
@@ -176,7 +176,7 @@ instance:
 /* Flexcomm I2S configuration */
 const i2s_config_t FC4_I2S_TX_config = {
   .masterSlave = kI2S_MasterSlaveNormalMaster,
-  .mode = kI2S_ModeDspWsShort,
+  .mode = kI2S_ModeDspWs50,
   .rightLow = false,
   .leftJust = false,
   .sckPol = false,
@@ -213,12 +213,12 @@ static void FC4_I2S_TX_init(void) {
 }
 
 /***********************************************************************************************************************
- * FC5_I2S_RX initialization code
+ * FC5_I2S_TX initialization code
  **********************************************************************************************************************/
 /* clang-format off */
 /* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
 instance:
-- name: 'FC5_I2S_RX'
+- name: 'FC5_I2S_TX'
 - type: 'flexcomm_i2s'
 - mode: 'dma'
 - custom_name_enabled: 'true'
@@ -228,7 +228,7 @@ instance:
 - config_sets:
   - fsl_i2s:
     - i2s_config:
-      - usage: 'record'
+      - usage: 'playback'
       - masterSlave: 'kI2S_MasterSlaveNormalMaster'
       - sckPolM: 'false'
       - wsPolM: 'true'
@@ -254,26 +254,26 @@ instance:
       - frameLengthM: '256'
       - rightLow: 'false'
       - leftJust: 'false'
-      - watermarkM_Rx: 'ki2s_RxFifo5'
+      - watermarkM_Tx: 'ki2s_TxFifo0'
+      - txEmptyZeroTx: 'false'
       - pack48: 'false'
   - dmaCfg:
     - dma_channels:
-      - dma_rx_channel:
-        - DMA_source: 'kDma0RequestFlexcomm5Rx'
-        - init_channel_priority: 'true'
-        - dma_priority: 'kDMA_ChannelPriority3'
-        - enable_custom_name: 'true'
-        - handle_custom_name: 'FC5_RX_Handle'
+      - dma_tx_channel:
+        - DMA_source: 'kDma0RequestFlexcomm5Tx'
+        - init_channel_priority: 'false'
+        - dma_priority: 'kDMA_ChannelPriority0'
+        - enable_custom_name: 'false'
     - i2s_dma_handle:
       - enable_custom_name: 'true'
-      - handle_custom_name: 'FC5_I2S_Rx_DMA_Handle'
+      - handle_custom_name: 'FC5_I2S_Tx_DMA_Handle'
       - init_callback: 'true'
-      - callback_fcn: 'fc5_i2s_rx_cb'
-      - user_data: 'fc5RxData'
+      - callback_fcn: 'fc5_i2s_tx_cb'
+      - user_data: 'fc5TxData'
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
 /* Flexcomm I2S configuration */
-const i2s_config_t FC5_I2S_RX_config = {
+const i2s_config_t FC5_I2S_TX_config = {
   .masterSlave = kI2S_MasterSlaveNormalMaster,
   .mode = kI2S_ModeDspWsShort,
   .rightLow = false,
@@ -285,30 +285,28 @@ const i2s_config_t FC5_I2S_RX_config = {
   .dataLength = 32,
   .frameLength = 256,
   .position = 0,
-  .watermark = 4,
+  .watermark = 0,
   .txEmptyZero = false,
   .pack48 = false
 };
-dma_handle_t FC5_RX_Handle;
-i2s_dma_handle_t FC5_I2S_Rx_DMA_Handle;
+dma_handle_t FC5_I2S_TX_TX_Handle;
+i2s_dma_handle_t FC5_I2S_Tx_DMA_Handle;
 
-static void FC5_I2S_RX_init(void) {
+static void FC5_I2S_TX_init(void) {
   /* Flexcomm I2S initialization */
-  I2S_RxInit(FC5_I2S_RX_PERIPHERAL, &FC5_I2S_RX_config);
+  I2S_TxInit(FC5_I2S_TX_PERIPHERAL, &FC5_I2S_TX_config);
   /* Setup secondary channel 1 */
-  I2S_EnableSecondaryChannel(FC5_I2S_RX_PERIPHERAL, kI2S_SecondaryChannel1, false, 64U);
+  I2S_EnableSecondaryChannel(FC5_I2S_TX_PERIPHERAL, kI2S_SecondaryChannel1, false, 64U);
   /* Setup secondary channel 2 */
-  I2S_EnableSecondaryChannel(FC5_I2S_RX_PERIPHERAL, kI2S_SecondaryChannel2, false, 128U);
+  I2S_EnableSecondaryChannel(FC5_I2S_TX_PERIPHERAL, kI2S_SecondaryChannel2, false, 128U);
   /* Setup secondary channel 3 */
-  I2S_EnableSecondaryChannel(FC5_I2S_RX_PERIPHERAL, kI2S_SecondaryChannel3, false, 192U);
-  /* Enable the DMA 10 channel in the DMA */
-  DMA_EnableChannel(FC5_I2S_RX_RX_DMA_BASEADDR, FC5_I2S_RX_RX_DMA_CHANNEL);
-  /* Set the DMA 10 channel priority */
-  DMA_SetChannelPriority(FC5_I2S_RX_RX_DMA_BASEADDR, FC5_I2S_RX_RX_DMA_CHANNEL, kDMA_ChannelPriority3);
-  /* Create the DMA FC5_RX_Handle handle */
-  DMA_CreateHandle(&FC5_RX_Handle, FC5_I2S_RX_RX_DMA_BASEADDR, FC5_I2S_RX_RX_DMA_CHANNEL);
+  I2S_EnableSecondaryChannel(FC5_I2S_TX_PERIPHERAL, kI2S_SecondaryChannel3, false, 192U);
+  /* Enable the DMA 11 channel in the DMA */
+  DMA_EnableChannel(FC5_I2S_TX_TX_DMA_BASEADDR, FC5_I2S_TX_TX_DMA_CHANNEL);
+  /* Create the DMA FC5_I2S_TX_TX_Handle handle */
+  DMA_CreateHandle(&FC5_I2S_TX_TX_Handle, FC5_I2S_TX_TX_DMA_BASEADDR, FC5_I2S_TX_TX_DMA_CHANNEL);
   /* Create the I2S DMA handle */
-  I2S_RxTransferCreateHandleDMA(FC5_I2S_RX_PERIPHERAL, &FC5_I2S_Rx_DMA_Handle, &FC5_RX_Handle, fc5_i2s_rx_cb, fc5RxData);
+  I2S_TxTransferCreateHandleDMA(FC5_I2S_TX_PERIPHERAL, &FC5_I2S_Tx_DMA_Handle, &FC5_I2S_TX_TX_Handle, fc5_i2s_tx_cb, fc5TxData);
 }
 
 /***********************************************************************************************************************
@@ -520,7 +518,7 @@ void BOARD_InitPeripherals(void)
 
   /* Initialize components */
   FC4_I2S_TX_init();
-  FC5_I2S_RX_init();
+  FC5_I2S_TX_init();
   FLEXCOMM3_init();
   FLEXCOMM1_init();
 }

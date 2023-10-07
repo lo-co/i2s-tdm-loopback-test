@@ -176,6 +176,8 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 	int32_t *new_data = (int32_t *)(tx_Buffer + tx_index*BUFFER_SIZE);
 
     memcpy(new_data, rcv_transfer->data, BUFFER_SIZE);
+    tx_xfer.data     = (uint8_t *)new_data;
+    tx_xfer.dataSize = BUFFER_SIZE;
 
     // Use this to register an event
     static bool transmitting = false;
@@ -208,6 +210,15 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 			new_data[i++] = wave[wave_pos % 48];
 			i+=6;
 		}
+
+        status_t i2s_status = kStatus_Success;
+        i2s_status = I2S_TxTransferSendDMA(FC5_I2S_TX_PERIPHERAL, &FC4_I2S_Tx_Handle, tx_xfer);
+
+        if (kStatus_Success != i2s_status)
+        {
+            PRINTF("TXFR Failure");
+        }
+
 	}
     else
     {
@@ -227,8 +238,6 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 
     if (emptyBlock < BUFFER_NUMBER)
     {
-        tx_xfer.data     = (uint8_t *)new_data;
-        tx_xfer.dataSize = BUFFER_SIZE;
         if (kStatus_Success == I2S_TxTransferSendDMA(FLEXCOMM3_PERIPHERAL, &i2sTxHandle, tx_xfer))
         {
             tx_index++;
@@ -239,8 +248,8 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
         }
     }
 }
-void * fc5RxData = NULL;
-void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
+void * fc5TxData = NULL;
+void fc5_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
     ;
 }

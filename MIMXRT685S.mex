@@ -243,14 +243,53 @@
                   <pin peripheral="GPIO" signal="PIO0, 26" pin_num="A2" pin_signal="PIO0_26/FC3_SSEL2/SCT0_GPI6/SCT0_OUT6/CTIMER_INP7/SEC_PIO0_26/ADC0_3">
                      <pin_features>
                         <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="ibena" value="disabled"/>
                      </pin_features>
                   </pin>
-                  <pin peripheral="FLEXCOMM4" signal="SCK" pin_num="D11" pin_signal="PIO0_28/FC4_SCK/CTIMER4_MAT0/I2S_BRIDGE_CLK_OUT/SEC_PIO0_28"/>
-                  <pin peripheral="FLEXCOMM4" signal="TXD_SCL_MISO_WS" pin_num="B10" pin_signal="PIO0_29/FC4_TXD_SCL_MISO_WS/CTIMER4_MAT1/I2S_BRIDGE_WS_OUT/SEC_PIO0_29"/>
-                  <pin peripheral="FLEXCOMM4" signal="RXD_SDA_MOSI_DATA" pin_num="C11" pin_signal="PIO0_30/FC4_RXD_SDA_MOSI_DATA/CTIMER4_MAT2/I2S_BRIDGE_DATA_OUT/SEC_PIO0_30"/>
-                  <pin peripheral="FLEXCOMM5" signal="SCK" pin_num="G16" pin_signal="PIO1_3/FC5_SCK"/>
-                  <pin peripheral="FLEXCOMM5" signal="TXD_SCL_MISO_WS" pin_num="G17" pin_signal="PIO1_4/FC5_TXD_SCL_MISO_WS"/>
-                  <pin peripheral="FLEXCOMM5" signal="RXD_SDA_MOSI_DATA" pin_num="J16" pin_signal="PIO1_5/FC5_RXD_SDA_MOSI_DATA"/>
+                  <pin peripheral="FLEXCOMM4" signal="SCK" pin_num="D11" pin_signal="PIO0_28/FC4_SCK/CTIMER4_MAT0/I2S_BRIDGE_CLK_OUT/SEC_PIO0_28">
+                     <pin_features>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="ibena" value="enabled"/>
+                        <pin_feature name="drive" value="normal"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="FLEXCOMM4" signal="TXD_SCL_MISO_WS" pin_num="B10" pin_signal="PIO0_29/FC4_TXD_SCL_MISO_WS/CTIMER4_MAT1/I2S_BRIDGE_WS_OUT/SEC_PIO0_29">
+                     <pin_features>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="pupdena" value="disabled"/>
+                        <pin_feature name="pupdsel" value="pullDown"/>
+                        <pin_feature name="ibena" value="enabled"/>
+                        <pin_feature name="drive" value="normal"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="FLEXCOMM4" signal="RXD_SDA_MOSI_DATA" pin_num="C11" pin_signal="PIO0_30/FC4_RXD_SDA_MOSI_DATA/CTIMER4_MAT2/I2S_BRIDGE_DATA_OUT/SEC_PIO0_30">
+                     <pin_features>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="ibena" value="enabled"/>
+                        <pin_feature name="drive" value="normal"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="FLEXCOMM5" signal="SCK" pin_num="G16" pin_signal="PIO1_3/FC5_SCK">
+                     <pin_features>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="ibena" value="enabled"/>
+                        <pin_feature name="drive" value="full"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="FLEXCOMM5" signal="TXD_SCL_MISO_WS" pin_num="G17" pin_signal="PIO1_4/FC5_TXD_SCL_MISO_WS">
+                     <pin_features>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="ibena" value="enabled"/>
+                        <pin_feature name="drive" value="full"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="FLEXCOMM5" signal="RXD_SDA_MOSI_DATA" pin_num="J16" pin_signal="PIO1_5/FC5_RXD_SDA_MOSI_DATA">
+                     <pin_features>
+                        <pin_feature name="direction" value="OUTPUT"/>
+                        <pin_feature name="ibena" value="enabled"/>
+                        <pin_feature name="drive" value="full"/>
+                     </pin_features>
+                  </pin>
                </pins>
             </function>
          </functions_list>
@@ -551,7 +590,7 @@
                               <setting name="clockSourceFreq" value="ClocksTool_DefaultInit"/>
                               <setting name="masterClockDependency" value="false"/>
                            </struct>
-                           <setting name="mode" value="kI2S_ModeDspWsShort"/>
+                           <setting name="mode" value="kI2S_ModeDspWs50"/>
                            <setting name="dataLengthM" value="32"/>
                            <setting name="stereo" value="kSAI_Stereo"/>
                            <setting name="positionM" value="0"/>
@@ -614,10 +653,10 @@
                         </struct>
                      </config_set>
                   </instance>
-                  <instance name="FC5_I2S_RX" uuid="7d8f386d-695b-443e-b1c0-8c57e94cb93f" type="flexcomm_i2s" type_id="flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5" mode="dma" peripheral="FLEXCOMM5" enabled="true" comment="" custom_name_enabled="true" editing_lock="false">
+                  <instance name="FC5_I2S_TX" uuid="7d8f386d-695b-443e-b1c0-8c57e94cb93f" type="flexcomm_i2s" type_id="flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5" mode="dma" peripheral="FLEXCOMM5" enabled="true" comment="" custom_name_enabled="true" editing_lock="false">
                      <config_set name="fsl_i2s">
                         <struct name="i2s_config">
-                           <setting name="usage" value="record"/>
+                           <setting name="usage" value="playback"/>
                            <setting name="masterSlave" value="kI2S_MasterSlaveNormalMaster"/>
                            <setting name="sckPolM" value="false"/>
                            <setting name="wsPolM" value="true"/>
@@ -648,26 +687,26 @@
                            <setting name="frameLengthM" value="256"/>
                            <setting name="rightLow" value="false"/>
                            <setting name="leftJust" value="false"/>
-                           <setting name="watermarkM_Rx" value="ki2s_RxFifo5"/>
+                           <setting name="watermarkM_Tx" value="ki2s_TxFifo0"/>
+                           <setting name="txEmptyZeroTx" value="false"/>
                            <setting name="pack48" value="false"/>
                         </struct>
                      </config_set>
                      <config_set name="dmaCfg">
                         <struct name="dma_channels">
-                           <struct name="dma_rx_channel">
-                              <setting name="DMA_source" value="kDma0RequestFlexcomm5Rx"/>
-                              <setting name="init_channel_priority" value="true"/>
-                              <setting name="dma_priority" value="kDMA_ChannelPriority3"/>
-                              <setting name="enable_custom_name" value="true"/>
-                              <setting name="handle_custom_name" value="FC5_RX_Handle"/>
+                           <struct name="dma_tx_channel">
+                              <setting name="DMA_source" value="kDma0RequestFlexcomm5Tx"/>
+                              <setting name="init_channel_priority" value="false"/>
+                              <setting name="dma_priority" value="kDMA_ChannelPriority0"/>
+                              <setting name="enable_custom_name" value="false"/>
                            </struct>
                         </struct>
                         <struct name="i2s_dma_handle">
                            <setting name="enable_custom_name" value="true"/>
-                           <setting name="handle_custom_name" value="FC5_I2S_Rx_DMA_Handle"/>
+                           <setting name="handle_custom_name" value="FC5_I2S_Tx_DMA_Handle"/>
                            <setting name="init_callback" value="true"/>
-                           <setting name="callback_fcn" value="fc5_i2s_rx_cb"/>
-                           <setting name="user_data" value="fc5RxData"/>
+                           <setting name="callback_fcn" value="fc5_i2s_tx_cb"/>
+                           <setting name="user_data" value="fc5TxData"/>
                         </struct>
                      </config_set>
                   </instance>

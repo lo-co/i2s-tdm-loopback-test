@@ -87,6 +87,7 @@ void BOARD_InitDebugConsolePins(void); /* Function assigned for the Cortex-M33 *
 
 #define IOPCTL_PIO_ANAMUX_DI 0x00u        /*!<@brief Analog mux is disabled */
 #define IOPCTL_PIO_FULLDRIVE_DI 0x00u     /*!<@brief Normal drive */
+#define IOPCTL_PIO_FULLDRIVE_EN 0x0100u   /*!<@brief Full drive enable */
 #define IOPCTL_PIO_FUNC0 0x00u            /*!<@brief Selects pin function 0 */
 #define IOPCTL_PIO_FUNC1 0x01u            /*!<@brief Selects pin function 1 */
 #define IOPCTL_PIO_INBUF_DI 0x00u         /*!<@brief Disable input buffer function */
@@ -160,30 +161,30 @@ void BOARD_InitDebugConsolePins(void); /* Function assigned for the Cortex-M33 *
 /*! @name FC4_SCK (coord D11), J27[3]
   @{ */
 /* Routed pin properties */
-#define FC4_SCK_PERIPHERAL FLEXCOMM4 /*!<@brief Peripheral name */
-#define FC4_SCK_SIGNAL SCK           /*!<@brief Signal name */
-                                     /* @} */
+#define FC4_SCK_PERIPHERAL FLEXCOMM4               /*!<@brief Peripheral name */
+#define FC4_SCK_SIGNAL SCK                         /*!<@brief Signal name */
+                                                   /* @} */
 
 /*! @name FC4_TXD_SCL_MISO_WS (coord B10), J27[2]
   @{ */
 /* Routed pin properties */
-#define FC4_I2S_WS_PERIPHERAL FLEXCOMM4         /*!<@brief Peripheral name */
-#define FC4_I2S_WS_SIGNAL TXD_SCL_MISO_WS       /*!<@brief Signal name */
-                                                /* @} */
+#define FC4_I2S_WS_PERIPHERAL FLEXCOMM4               /*!<@brief Peripheral name */
+#define FC4_I2S_WS_SIGNAL TXD_SCL_MISO_WS             /*!<@brief Signal name */
+                                                      /* @} */
 
 /*! @name FC4_RXD_SDA_MOSI_DATA (coord C11), JP42[2]
   @{ */
 /* Routed pin properties */
-#define FC4_I2S_Data_PERIPHERAL FLEXCOMM4           /*!<@brief Peripheral name */
-#define FC4_I2S_Data_SIGNAL RXD_SDA_MOSI_DATA       /*!<@brief Signal name */
-                                                    /* @} */
+#define FC4_I2S_Data_PERIPHERAL FLEXCOMM4               /*!<@brief Peripheral name */
+#define FC4_I2S_Data_SIGNAL RXD_SDA_MOSI_DATA           /*!<@brief Signal name */
+                                                        /* @} */
 
 /*! @name FC5_SCK (coord G16), J28[6]/J58[7]/ARD_SPI_CLK
   @{ */
 /* Routed pin properties */
-#define FC5_I2S_SCK_PERIPHERAL FLEXCOMM5              /*!<@brief Peripheral name */
-#define FC5_I2S_SCK_SIGNAL SCK                        /*!<@brief Signal name */
-                                                      /* @} */
+#define FC5_I2S_SCK_PERIPHERAL FLEXCOMM5               /*!<@brief Peripheral name */
+#define FC5_I2S_SCK_SIGNAL SCK                         /*!<@brief Signal name */
+                                                       /* @} */
 
 /*! @name FC5_TXD_SCL_MISO_WS (coord G17), J28[5]/J45[32]/J58[5]/ARD_SPI_MISO
   @{ */
@@ -195,9 +196,9 @@ void BOARD_InitDebugConsolePins(void); /* Function assigned for the Cortex-M33 *
 /*! @name FC5_RXD_SDA_MOSI_DATA (coord J16), JP41[2]
   @{ */
 /* Routed pin properties */
-#define FC5_I2S_Data_PERIPHERAL FLEXCOMM5           /*!<@brief Peripheral name */
-#define FC5_I2S_Data_SIGNAL RXD_SDA_MOSI_DATA       /*!<@brief Signal name */
-                                                    /* @} */
+#define FC5_I2S_Data_PERIPHERAL FLEXCOMM5               /*!<@brief Peripheral name */
+#define FC5_I2S_Data_SIGNAL RXD_SDA_MOSI_DATA           /*!<@brief Signal name */
+                                                        /* @} */
 
 /*!
  * @brief Configures pin routing and optionally pin electrical features.
