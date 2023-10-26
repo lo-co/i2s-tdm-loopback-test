@@ -230,27 +230,11 @@
                         <pin_feature name="ibena" value="enabled"/>
                      </pin_features>
                   </pin>
-                  <pin peripheral="GPIO" signal="PIO1, 14" pin_num="N2" pin_signal="PIO1_14/HS_SPI_SSEL0/CTIMER2_MAT3/FLEXSPI0B_DATA3">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="GPIO" signal="PIO1, 13" pin_num="N1" pin_signal="PIO1_13/HS_SPI_MOSI/CTIMER2_MAT2/FLEXSPI0B_DATA2">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="GPIO" signal="PIO0, 26" pin_num="A2" pin_signal="PIO0_26/FC3_SSEL2/SCT0_GPI6/SCT0_OUT6/CTIMER_INP7/SEC_PIO0_26/ADC0_3">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                        <pin_feature name="ibena" value="disabled"/>
-                     </pin_features>
-                  </pin>
                   <pin peripheral="FLEXCOMM4" signal="SCK" pin_num="D11" pin_signal="PIO0_28/FC4_SCK/CTIMER4_MAT0/I2S_BRIDGE_CLK_OUT/SEC_PIO0_28">
                      <pin_features>
                         <pin_feature name="direction" value="OUTPUT"/>
                         <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="normal"/>
+                        <pin_feature name="drive" value="full"/>
                      </pin_features>
                   </pin>
                   <pin peripheral="FLEXCOMM4" signal="TXD_SCL_MISO_WS" pin_num="B10" pin_signal="PIO0_29/FC4_TXD_SCL_MISO_WS/CTIMER4_MAT1/I2S_BRIDGE_WS_OUT/SEC_PIO0_29">
@@ -259,7 +243,7 @@
                         <pin_feature name="pupdena" value="disabled"/>
                         <pin_feature name="pupdsel" value="pullDown"/>
                         <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="normal"/>
+                        <pin_feature name="drive" value="full"/>
                      </pin_features>
                   </pin>
                   <pin peripheral="FLEXCOMM4" signal="RXD_SDA_MOSI_DATA" pin_num="C11" pin_signal="PIO0_30/FC4_RXD_SDA_MOSI_DATA/CTIMER4_MAT2/I2S_BRIDGE_DATA_OUT/SEC_PIO0_30">
@@ -494,11 +478,6 @@
                         <data type="Boolean">true</data>
                      </feature>
                   </dependency>
-                  <dependency resourceType="ClockOutput" resourceId="FXCOM5_clock" description="FXCOM5 clock is inactive." problem_level="2" source="Peripherals:BOARD_InitPeripherals">
-                     <feature name="frequency" evaluation="greaterThan">
-                        <data type="Frequency" unit="Hz">0</data>
-                     </feature>
-                  </dependency>
                   <dependency resourceType="SWComponent" resourceId="platform.drivers.flexcomm_i2s_dma" description="The flexcomm_i2s_dma (fsl_i2s_dma.c) driver is missing in the project  (required for the DMA mode)." problem_level="2" source="Peripherals:BOARD_InitPeripherals">
                      <feature name="enabled" evaluation="equal">
                         <data type="Boolean">true</data>
@@ -590,22 +569,22 @@
                               <setting name="clockSourceFreq" value="ClocksTool_DefaultInit"/>
                               <setting name="masterClockDependency" value="false"/>
                            </struct>
-                           <setting name="mode" value="kI2S_ModeDspWs50"/>
+                           <setting name="mode" value="kI2S_ModeDspWsShort"/>
                            <setting name="dataLengthM" value="32"/>
                            <setting name="stereo" value="kSAI_Stereo"/>
-                           <setting name="positionM" value="0"/>
+                           <setting name="positionM" value="1"/>
                            <array name="secondary_channels_array">
                               <struct name="0">
                                  <setting name="stereo" value="kSAI_Stereo"/>
-                                 <setting name="positionM" value="64"/>
+                                 <setting name="positionM" value="65"/>
                               </struct>
                               <struct name="1">
                                  <setting name="stereo" value="kSAI_Stereo"/>
-                                 <setting name="positionM" value="128"/>
+                                 <setting name="positionM" value="129"/>
                               </struct>
                               <struct name="2">
                                  <setting name="stereo" value="kSAI_Stereo"/>
-                                 <setting name="positionM" value="192"/>
+                                 <setting name="positionM" value="193"/>
                               </struct>
                            </array>
                            <setting name="frameLengthM" value="256"/>
@@ -628,7 +607,7 @@
                         <struct name="i2s_dma_handle">
                            <setting name="enable_custom_name" value="true"/>
                            <setting name="handle_custom_name" value="FC4_I2S_Tx_Handle"/>
-                           <setting name="init_callback" value="false"/>
+                           <setting name="init_callback" value="true"/>
                            <setting name="callback_fcn" value="fc4_i2s_tx_cb"/>
                            <setting name="user_data" value="fc4I2sTxData"/>
                         </struct>
@@ -653,17 +632,16 @@
                         </struct>
                      </config_set>
                   </instance>
-                  <instance name="FC5_I2S_TX" uuid="7d8f386d-695b-443e-b1c0-8c57e94cb93f" type="flexcomm_i2s" type_id="flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5" mode="dma" peripheral="FLEXCOMM5" enabled="true" comment="" custom_name_enabled="true" editing_lock="false">
+                  <instance name="FC5_I2S" uuid="7d8f386d-695b-443e-b1c0-8c57e94cb93f" type="flexcomm_i2s" type_id="flexcomm_i2s_d821d1d3dded76c4d4194ae52cbf73a5" mode="dma" peripheral="FLEXCOMM5" enabled="true" comment="" custom_name_enabled="true" editing_lock="false">
                      <config_set name="fsl_i2s">
                         <struct name="i2s_config">
-                           <setting name="usage" value="playback"/>
-                           <setting name="masterSlave" value="kI2S_MasterSlaveNormalMaster"/>
+                           <setting name="usage" value="record"/>
+                           <setting name="masterSlave" value="kI2S_MasterSlaveNormalSlave"/>
                            <setting name="sckPolM" value="false"/>
                            <setting name="wsPolM" value="true"/>
                            <struct name="clockConfig">
                               <setting name="sampleRate_Hz" value="kSAI_SampleRate48KHz"/>
-                              <setting name="clockSource" value="FXCOMFunctionClock"/>
-                              <setting name="clockSourceFreq" value="ClocksTool_DefaultInit"/>
+                              <setting name="externalBitClockFrequency" value="12288000 Hz"/>
                               <setting name="masterClockDependency" value="false"/>
                            </struct>
                            <setting name="mode" value="kI2S_ModeDspWsShort"/>
@@ -687,15 +665,14 @@
                            <setting name="frameLengthM" value="256"/>
                            <setting name="rightLow" value="false"/>
                            <setting name="leftJust" value="false"/>
-                           <setting name="watermarkM_Tx" value="ki2s_TxFifo0"/>
-                           <setting name="txEmptyZeroTx" value="false"/>
+                           <setting name="watermarkM_Rx" value="ki2s_RxFifo1"/>
                            <setting name="pack48" value="false"/>
                         </struct>
                      </config_set>
                      <config_set name="dmaCfg">
                         <struct name="dma_channels">
-                           <struct name="dma_tx_channel">
-                              <setting name="DMA_source" value="kDma0RequestFlexcomm5Tx"/>
+                           <struct name="dma_rx_channel">
+                              <setting name="DMA_source" value="kDma0RequestFlexcomm5Rx"/>
                               <setting name="init_channel_priority" value="false"/>
                               <setting name="dma_priority" value="kDMA_ChannelPriority0"/>
                               <setting name="enable_custom_name" value="false"/>
@@ -703,10 +680,10 @@
                         </struct>
                         <struct name="i2s_dma_handle">
                            <setting name="enable_custom_name" value="true"/>
-                           <setting name="handle_custom_name" value="FC5_I2S_Tx_DMA_Handle"/>
+                           <setting name="handle_custom_name" value="FC5_I2S_Rx_DMA_Handle"/>
                            <setting name="init_callback" value="true"/>
-                           <setting name="callback_fcn" value="fc5_i2s_tx_cb"/>
-                           <setting name="user_data" value="fc5TxData"/>
+                           <setting name="callback_fcn" value="fc5_i2s_rx_cb"/>
+                           <setting name="user_data" value="fc5RxData"/>
                         </struct>
                      </config_set>
                   </instance>

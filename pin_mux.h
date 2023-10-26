@@ -90,7 +90,6 @@ void BOARD_InitDebugConsolePins(void); /* Function assigned for the Cortex-M33 *
 #define IOPCTL_PIO_FULLDRIVE_EN 0x0100u   /*!<@brief Full drive enable */
 #define IOPCTL_PIO_FUNC0 0x00u            /*!<@brief Selects pin function 0 */
 #define IOPCTL_PIO_FUNC1 0x01u            /*!<@brief Selects pin function 1 */
-#define IOPCTL_PIO_INBUF_DI 0x00u         /*!<@brief Disable input buffer function */
 #define IOPCTL_PIO_INBUF_EN 0x40u         /*!<@brief Enables input buffer function */
 #define IOPCTL_PIO_INV_DI 0x00u           /*!<@brief Input function is not inverted */
 #define IOPCTL_PIO_PSEDRAIN_DI 0x00u      /*!<@brief Pseudo Output Drain is disabled */
@@ -112,51 +111,6 @@ void BOARD_InitDebugConsolePins(void); /* Function assigned for the Cortex-M33 *
 #define SW2_PIN 10U                           /*!<@brief PORT pin number */
 #define SW2_PIN_MASK (1U << 10U)              /*!<@brief PORT pin mask */
                                               /* @} */
-
-/*! @name PIO1_14 (coord N2), TimingInt1
-  @{ */
-/* Routed pin properties */
-#define Timing_Int_1_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
-#define Timing_Int_1_SIGNAL PIO1                        /*!<@brief Signal name */
-#define Timing_Int_1_CHANNEL 14                         /*!<@brief Signal channel */
-
-/* Symbols to be used with GPIO driver */
-#define Timing_Int_1_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
-#define Timing_Int_1_GPIO_PIN_MASK (1U << 14U)          /*!<@brief GPIO pin mask */
-#define Timing_Int_1_PORT 1U                            /*!<@brief PORT peripheral base pointer */
-#define Timing_Int_1_PIN 14U                            /*!<@brief PORT pin number */
-#define Timing_Int_1_PIN_MASK (1U << 14U)               /*!<@brief PORT pin mask */
-                                                        /* @} */
-
-/*! @name PIO1_13 (coord N1), TimingInt2
-  @{ */
-/* Routed pin properties */
-#define Timing_Int_2_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
-#define Timing_Int_2_SIGNAL PIO1                        /*!<@brief Signal name */
-#define Timing_Int_2_CHANNEL 13                         /*!<@brief Signal channel */
-
-/* Symbols to be used with GPIO driver */
-#define Timing_Int_2_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
-#define Timing_Int_2_GPIO_PIN_MASK (1U << 13U)          /*!<@brief GPIO pin mask */
-#define Timing_Int_2_PORT 1U                            /*!<@brief PORT peripheral base pointer */
-#define Timing_Int_2_PIN 13U                            /*!<@brief PORT pin number */
-#define Timing_Int_2_PIN_MASK (1U << 13U)               /*!<@brief PORT pin mask */
-                                                        /* @} */
-
-/*! @name PIO0_26 (coord A2), LED_BLUE
-  @{ */
-/* Routed pin properties */
-#define LED_BLUE_PERIPHERAL GPIO                    /*!<@brief Peripheral name */
-#define LED_BLUE_SIGNAL PIO0                        /*!<@brief Signal name */
-#define LED_BLUE_CHANNEL 26                         /*!<@brief Signal channel */
-
-/* Symbols to be used with GPIO driver */
-#define LED_BLUE_GPIO GPIO                          /*!<@brief GPIO peripheral base pointer */
-#define LED_BLUE_GPIO_PIN_MASK (1U << 26U)          /*!<@brief GPIO pin mask */
-#define LED_BLUE_PORT 0U                            /*!<@brief PORT peripheral base pointer */
-#define LED_BLUE_PIN 26U                            /*!<@brief PORT pin number */
-#define LED_BLUE_PIN_MASK (1U << 26U)               /*!<@brief PORT pin mask */
-                                                    /* @} */
 
 /*! @name FC4_SCK (coord D11), J27[3]
   @{ */

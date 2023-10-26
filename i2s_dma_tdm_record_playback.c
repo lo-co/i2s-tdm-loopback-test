@@ -63,10 +63,12 @@ cs42448_config_t cs42448Config = {
 codec_config_t boardCodecConfig = {.codecDevType = kCODEC_CS42448, .codecDevConfig = &cs42448Config};
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t tx_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
+AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv5_buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 
 static uint32_t tx_index = 0U, rx_index = 0U;
 
 volatile uint32_t emptyBlock = BUFFER_NUMBER;
+volatile uint32_t emptyFC4Buffer = BUFFER_NUMBER;
 extern codec_config_t boardCodecConfig;
 codec_handle_t codecHandle;
 
@@ -80,6 +82,8 @@ uint64_t evt_times[5] = {0};
 int32_t wave[48] = {0};
 uint8_t current_evt_idx = 0;
 
+uint16_t g_tx_error = 0;
+
 bool g_interruptEnabled = false;
 typedef struct event_s {
     uint8_t idx;
@@ -90,7 +94,8 @@ typedef enum evt_type_e
 {
     RCV_INTERRUPT = 0,
     START_TXMIT = 1,
-    RCV_TXMIT = 2
+    START_RCV = 2,
+    RCV_TXMIT = 3,
 } evt_type_t;
 
 static uint64_t g_tick_per_us = 0;
@@ -98,6 +103,8 @@ static uint64_t g_tick_per_us = 0;
 static uint64_t ostime_get_us();
 
 static event_t current_events = {.idx = 0, .evt_times = {0}};
+
+static bool now_receiving = false;
 
 /*******************************************************************************
  * Code
@@ -110,7 +117,7 @@ static void generate_wave()
 	// Volume is 1/4 max
 	int32_t max_vol = 16777216;
 
-	PRINTF("Generating wave now...\r\n");
+	// PRINTF("Generating wave now...\r\n");
 
 	for (uint8_t i = 0; i < 48; i++)
 	{
@@ -124,7 +131,12 @@ void APP_GPIO_INTA_IRQHandler(void)
     /* clear the interrupt status */
     GPIO_PinClearInterruptFlag(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
     /* Change state of switch. */
+    if (g_interruptEnabled)
+    {
+        memset(rcv5_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
+    }
     g_interruptEnabled = !g_interruptEnabled;
+
     SDK_ISR_EXIT_BARRIER;
 }
 
@@ -181,14 +193,14 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 
     // Use this to register an event
     static bool transmitting = false;
-    static bool trans_rcv = false;
+    // static bool trans_rcv = false;
 
-    if (!trans_rcv && transmitting && new_data[0] > 0) {
-        update_evt_times(RCV_TXMIT, &current_events);
-        PRINTF("Receiving transmission\r\n");
-        print_evt_data(current_events);
-        trans_rcv = true;
-    }
+    // if (!trans_rcv && transmitting && new_data[0] > 0) {
+    //     update_evt_times(RCV_TXMIT, &current_events);
+    //     PRINTF("Receiving transmission\r\n");
+    //     print_evt_data(current_events);
+    //     trans_rcv = true;
+    // }
 
     uint32_t num_elements = (SAMPLE_SIZE_MS * SAMPLE_PER_MS *  NUM_CHANNELS);
 
@@ -203,25 +215,43 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 		for (uint32_t i = 0, wave_pos = 0; i < num_elements; wave_pos++)
 		{
             // Copy incoming data on 0 and 1 into 2 and 3
-			new_data[i+2] = new_data[i];
-			new_data[i+3] = new_data[i+1];
+			// new_data[i+2] = new_data[i];
+			// new_data[i+3] = new_data[i+1];
 
 			new_data[i++] = wave[wave_pos % 48];
 			new_data[i++] = wave[wave_pos % 48];
+
+            new_data[i+6] =  new_data[i+7] = 0xdeadbeef;
 			i+=6;
 		}
 
-        status_t i2s_status = kStatus_Success;
-        i2s_status = I2S_TxTransferSendDMA(FC5_I2S_TX_PERIPHERAL, &FC4_I2S_Tx_Handle, tx_xfer);
-
-        if (kStatus_Success != i2s_status)
+        if (emptyFC4Buffer < BUFFER_NUMBER)
         {
-            PRINTF("TXFR Failure");
+            I2S_TxTransferSendDMA(FC4_I2S_TX_PERIPHERAL, &FC4_I2S_Tx_Handle, tx_xfer);
+
+            // if (kStatus_Success != i2s_status)
+            // {
+            //     uint32_t fifo_cfg = FC4_I2S_TX_PERIPHERAL->FIFOCFG;
+            //     uint32_t cfg1 = FC4_I2S_TX_PERIPHERAL->CFG1;
+            //     uint32_t cfg2 = FC4_I2S_TX_PERIPHERAL->CFG2;
+            //     uint32_t trig = FC4_I2S_TX_PERIPHERAL->FIFOTRIG;
+            //     uint32_t intstat = FC4_I2S_TX_PERIPHERAL->FIFOINTSTAT;
+            //     uint32_t stat = FC4_I2S_TX_PERIPHERAL->STAT;
+
+            //     /* If the second bit of STAT is high, then there is a slave frame error flag  */
+            //     if (stat>>1 & 0x1){
+            //         PRINTF("TXFR Failure %X\t%X\t%X\t%X\t%X\t%X\n\r", fifo_cfg, cfg1, cfg2, trig, intstat, stat);
+
+            //         // Clear the bit by writing 1
+            //         FC4_I2S_TX_PERIPHERAL->STAT |= 0x2;
+            //     }
+            // }
         }
 
 	}
     else
     {
+
 		for (uint32_t i = 0, wave_pos = 0; i < num_elements; wave_pos++)
 		{
             // Copy incoming data on 0 and 1 into 2 and 3
@@ -232,7 +262,8 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 			new_data[i++] = 0;
 			i+=6;
 		}
-        trans_rcv = transmitting = false;
+        // trans_rcv = transmitting = false;
+        transmitting = false;
 
     }
 
@@ -248,15 +279,25 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
         }
     }
 }
-void * fc5TxData = NULL;
-void fc5_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
+void * fc5RxData = NULL;
+void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
     ;
 }
 
+void * fc4I2sTxData = NULL;
+void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *){
+    emptyFC4Buffer++;
+}
+
+
 void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     emptyBlock--;
+
+    if (g_interruptEnabled && emptyFC4Buffer >0){
+        emptyFC4Buffer--;
+    }
 }
 
 void i2s_tx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
@@ -301,12 +342,19 @@ int main(void)
     /* Initialize buffer */
 	for (uint32_t i = 0; i < BUFFER_SIZE * BUFFER_NUMBER; i++)
 	{
-		tx_Buffer[i] = rcv_Buffer[i] =  0;
+		tx_Buffer[i] = rcv_Buffer[i] = rcv5_buffer[i] = 0;
 	}
+
+    uint32_t fifo_cfg = FC4_I2S_TX_PERIPHERAL->FIFOCFG;
+
+    PRINTF("FIFOCFG: %X\n\r", fifo_cfg);
 
     /* Generate wave for I2S transmission */
     generate_wave();
-
+    uint8_t rcv5_idx = 0;
+    i2s_transfer_t txfr_data;
+    static bool trans_rcv = false;
+    static bool start_rcv = false;
     while (1)
     {
         if (emptyBlock > 0)
@@ -323,6 +371,49 @@ int main(void)
             }
         }
         rcv_i2s_data(&xfer);
+        if (g_tx_error != 0 && !(g_tx_error % 10)){
+            PRINTF("Tx Error: %d", g_tx_error);
+        }
+        if (g_interruptEnabled)
+        {
+            if (!start_rcv)
+            {
+                update_evt_times(START_RCV, &current_events);
+                start_rcv = true;
+            }
+
+            txfr_data.data     = rcv5_buffer + rcv5_idx * BUFFER_SIZE;
+            txfr_data.dataSize = BUFFER_SIZE;
+            status_t status = 0;
+
+            if (kStatus_Success == (status = I2S_RxTransferReceiveDMA(FC5_I2S_PERIPHERAL, &FC5_I2S_Rx_DMA_Handle, txfr_data)))
+            {
+                rcv5_idx = rcv5_idx + 1 >= BUFFER_NUMBER ? 0 : rcv5_idx+1;
+                uint32_t *data = (uint32_t *)txfr_data.data;
+                if (*(data+8) != 0 && (*(data+8 )<<4 == *(data + 9)<<4) && !trans_rcv)
+                {
+
+                    update_evt_times(RCV_TXMIT, &current_events);
+                    // PRINTF("Receiving transmission\r\n");
+                    print_evt_data(current_events);
+                    trans_rcv = true;
+
+
+                    // PRINTF("Data is the same\r\n");
+                }
+            }
+            else
+            {
+                // PRINTF("test\r\n");
+            }
+
+        }
+        else
+        {
+            trans_rcv = false;
+            start_rcv = false;
+
+        }
     }
 }
 

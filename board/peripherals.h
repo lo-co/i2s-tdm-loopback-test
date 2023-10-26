@@ -35,13 +35,13 @@ extern "C" {
 #define FC4_I2S_TX_TX_DMA_BASEADDR DMA0
 /* BOARD_InitPeripherals defines for FLEXCOMM5 */
 /* Definition of peripheral ID */
-#define FC5_I2S_TX_PERIPHERAL ((I2S_Type *)FLEXCOMM5)
+#define FC5_I2S_PERIPHERAL ((I2S_Type *)FLEXCOMM5)
 /* Definition of the clock source frequency */
-#define FC5_I2S_TX_CLOCK_SOURCE 24576000UL
+#define FC5_I2S_CLOCK_SOURCE 12288000UL
 /* Selected DMA channel number. */
-#define FC5_I2S_TX_TX_DMA_CHANNEL 11
+#define FC5_I2S_RX_DMA_CHANNEL 10
 /* Used DMA device. */
-#define FC5_I2S_TX_TX_DMA_BASEADDR DMA0
+#define FC5_I2S_RX_DMA_BASEADDR DMA0
 /* BOARD_InitPeripherals defines for FLEXCOMM3 */
 /* Definition of peripheral ID */
 #define FLEXCOMM3_PERIPHERAL ((I2S_Type *)FLEXCOMM3)
@@ -66,11 +66,12 @@ extern "C" {
  **********************************************************************************************************************/
 extern const i2s_config_t FC4_I2S_TX_config;
 extern dma_handle_t FC4_I2S_TX_TX_Handle;
+extern void * fc4I2sTxData;
 extern i2s_dma_handle_t FC4_I2S_Tx_Handle;
-extern const i2s_config_t FC5_I2S_TX_config;
-extern dma_handle_t FC5_I2S_TX_TX_Handle;
-extern void * fc5TxData;
-extern i2s_dma_handle_t FC5_I2S_Tx_DMA_Handle;
+extern const i2s_config_t FC5_I2S_config;
+extern dma_handle_t FC5_I2S_RX_Handle;
+extern void * fc5RxData;
+extern i2s_dma_handle_t FC5_I2S_Rx_DMA_Handle;
 extern const i2s_config_t FLEXCOMM3_config;
 extern dma_handle_t i2sTxDmaHandle;
 extern void * txData;
@@ -83,8 +84,10 @@ extern i2s_dma_handle_t i2sRxHandle;
 /***********************************************************************************************************************
  * Callback functions
  **********************************************************************************************************************/
-/* I2S DMA callback function for the FC5_I2S_TX component (init. function BOARD_InitPeripherals)*/
-extern void fc5_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
+/* I2S DMA callback function for the FC4_I2S_TX component (init. function BOARD_InitPeripherals)*/
+extern void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
+/* I2S DMA callback function for the FC5_I2S component (init. function BOARD_InitPeripherals)*/
+extern void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 /* I2S DMA callback function for the FLEXCOMM3 component (init. function BOARD_InitPeripherals)*/
 extern void i2s_tx_Callback(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 /* I2S DMA callback function for the FLEXCOMM1 component (init. function BOARD_InitPeripherals)*/
