@@ -512,10 +512,10 @@ static void FLEXCOMM1_init(void) {
 void BOARD_InitPeripherals(void)
 {
   /* Global initialization */
-  DMA_Init(DMA0_DMA_BASEADDR);
+  // DMA_Init(DMA0_DMA_BASEADDR);
 
   /* Initialize components */
-  FC4_I2S_TX_init();
+  // FC4_I2S_TX_init();
   FC5_I2S_init();
   FLEXCOMM3_init();
   FLEXCOMM1_init();

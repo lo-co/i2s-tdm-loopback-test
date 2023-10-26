@@ -17,6 +17,7 @@
 #include "fsl_cs42448.h"
 #include "math.h"
 #include "board/peripherals.h"
+#include "drivers/i2s/i2s.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -59,6 +60,11 @@ cs42448_config_t cs42448Config = {
     .bus          = kCS42448_BusTDM,
     .slaveAddress = CS42448_I2C_ADDR,
 };
+void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *);
+i2s_context_t fc4_i2s_context;
+i2s_init_t fc4_config = {.flexcomm_bus = FLEXCOMM_4, .is_transmit = true,
+                        .is_master = true, .active_channels = 8, .sample_rate = 48000,
+                        .datalength = 32, .callback = fc4_i2s_tx_cb, .context = &fc4_i2s_context};
 
 codec_config_t boardCodecConfig = {.codecDevType = kCODEC_CS42448, .codecDevConfig = &cs42448Config};
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
@@ -313,6 +319,7 @@ int main(void)
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
+    i2s_init(fc4_config);
     BOARD_InitBootPeripherals();
 
     // Enable GPIO Ports...not certain why this not done in the pin mux functionality
