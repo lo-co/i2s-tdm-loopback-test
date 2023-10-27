@@ -61,10 +61,15 @@ cs42448_config_t cs42448Config = {
     .slaveAddress = CS42448_I2C_ADDR,
 };
 void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *);
+void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 i2s_context_t fc4_i2s_context;
 i2s_init_t fc4_config = {.flexcomm_bus = FLEXCOMM_4, .is_transmit = true,
                         .is_master = true, .active_channels = 8, .sample_rate = 48000,
                         .datalength = 32, .callback = fc4_i2s_tx_cb, .context = &fc4_i2s_context};
+i2s_context_t fc5_i2s_context;
+i2s_init_t fc5_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
+                        .is_master = false, .active_channels = 8, .sample_rate = 48000,
+                        .datalength = 32, .callback = fc5_i2s_rx_cb, .context = &fc5_i2s_context};
 
 codec_config_t boardCodecConfig = {.codecDevType = kCODEC_CS42448, .codecDevConfig = &cs42448Config};
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
@@ -110,7 +115,7 @@ static uint64_t ostime_get_us();
 
 static event_t current_events = {.idx = 0, .evt_times = {0}};
 
-static bool now_receiving = false;
+// static bool now_receiving = false;
 
 /*******************************************************************************
  * Code
@@ -233,7 +238,7 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 
         if (emptyFC4Buffer < BUFFER_NUMBER)
         {
-            I2S_TxTransferSendDMA(FC4_I2S_TX_PERIPHERAL, &FC4_I2S_Tx_Handle, tx_xfer);
+            I2S_TxTransferSendDMA(fc4_config.context->base, &fc4_config.context->i2s_dma_handle, tx_xfer);
 
             // if (kStatus_Success != i2s_status)
             // {
@@ -285,13 +290,11 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
         }
     }
 }
-void * fc5RxData = NULL;
 void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
     ;
 }
 
-void * fc4I2sTxData = NULL;
 void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *){
     emptyFC4Buffer++;
 }
@@ -320,6 +323,8 @@ int main(void)
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
     i2s_init(fc4_config);
+    i2s_init(fc5_config);
+
     BOARD_InitBootPeripherals();
 
     // Enable GPIO Ports...not certain why this not done in the pin mux functionality
@@ -352,9 +357,9 @@ int main(void)
 		tx_Buffer[i] = rcv_Buffer[i] = rcv5_buffer[i] = 0;
 	}
 
-    uint32_t fifo_cfg = FC4_I2S_TX_PERIPHERAL->FIFOCFG;
+    // uint32_t fifo_cfg = FC4_I2S_TX_PERIPHERAL->FIFOCFG;
 
-    PRINTF("FIFOCFG: %X\n\r", fifo_cfg);
+    // PRINTF("FIFOCFG: %X\n\r", fifo_cfg);
 
     /* Generate wave for I2S transmission */
     generate_wave();
@@ -393,7 +398,7 @@ int main(void)
             txfr_data.dataSize = BUFFER_SIZE;
             status_t status = 0;
 
-            if (kStatus_Success == (status = I2S_RxTransferReceiveDMA(FC5_I2S_PERIPHERAL, &FC5_I2S_Rx_DMA_Handle, txfr_data)))
+            if (kStatus_Success == (status = I2S_RxTransferReceiveDMA(fc5_config.context->base, &fc5_config.context->i2s_dma_handle, txfr_data)))
             {
                 rcv5_idx = rcv5_idx + 1 >= BUFFER_NUMBER ? 0 : rcv5_idx+1;
                 uint32_t *data = (uint32_t *)txfr_data.data;

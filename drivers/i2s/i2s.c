@@ -25,6 +25,13 @@ typedef struct i2s_pins_s {
     uint8_t data_pin;
 } i2s_pins_t;
 
+/** Is DMA initialized
+ *
+ * This assumes that all I2S buses use the same DMA instance (DMA0). Ensure
+ * that DMA gets initialized only once.
+*/
+static bool base_dma_initialized = false;
+
 /** Populate the peripheral base address
  *
  * @param config I2S configuration for bus
@@ -132,6 +139,7 @@ void i2s_init(i2s_init_t config)
     i2sConfig.dataLength = config.datalength;
     i2sConfig.frameLength = config.datalength * config.active_channels;
     i2sConfig.divider = FLEXCOMM_CLOCK_SOURCE / config.sample_rate / i2sConfig.frameLength;
+    i2sConfig.wsPol = true;
 
     set_peripheral_address(config);
 
@@ -150,14 +158,15 @@ void i2s_init(i2s_init_t config)
         uint8_t channel_pairs = config.active_channels >> 1;
         for (uint8_t frame = 1; frame < channel_pairs; frame++)
         {
-            I2S_EnableSecondaryChannel(config.context->base, frame-1, false,
-                i2sConfig.position + frame * i2sConfig.frameLength);
+            uint8_t position = i2sConfig.position + frame * i2sConfig.dataLength * 2;
+            I2S_EnableSecondaryChannel(config.context->base, frame-1, false, position);
         }
     }
 
     // I2S CONFIGURATION COMPLETE //
 
 
+    dma_init(config);
 
     // Set MCLK direction as output
     SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
@@ -221,7 +230,13 @@ static void dma_init(i2s_init_t config)
 {
     // I2S peripheral must be defined
     assert(config.context->base);
-    DMA_Init(I2S_DMA);
+
+    // Initialize the DMA module as necessary..
+    if (!base_dma_initialized)
+    {
+        DMA_Init(I2S_DMA);
+        base_dma_initialized = true;
+    }
 
     // DMA Channels are defined in Table 364;
     // channel is determined by whether it is receive or transmit
@@ -229,16 +244,16 @@ static void dma_init(i2s_init_t config)
 
     DMA_EnableChannel(I2S_DMA, dma_channel);
     DMA_SetChannelPriority(I2S_DMA, dma_channel, kDMA_ChannelPriority3);
-    DMA_CreateHandle(config.context->dma_handle, I2S_DMA, dma_channel);
+    DMA_CreateHandle(&config.context->dma_handle, I2S_DMA, dma_channel);
 
     if (config.is_transmit)
     {
-        I2S_TxTransferCreateHandleDMA(config.context->base, config.context->i2s_dma_handle,
-                                      config.context->dma_handle, config.callback, NULL);
+        I2S_TxTransferCreateHandleDMA(config.context->base, &config.context->i2s_dma_handle,
+                                      &config.context->dma_handle, config.callback, NULL);
 
     } else {
-        I2S_RxTransferCreateHandleDMA(config.context->base, config.context->i2s_dma_handle,
-                                      config.context->dma_handle, config.callback, NULL);
+        I2S_RxTransferCreateHandleDMA(config.context->base, &config.context->i2s_dma_handle,
+                                      &config.context->dma_handle, config.callback, NULL);
     }
 
 }

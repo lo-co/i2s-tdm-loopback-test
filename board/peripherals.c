@@ -516,7 +516,7 @@ void BOARD_InitPeripherals(void)
 
   /* Initialize components */
   // FC4_I2S_TX_init();
-  FC5_I2S_init();
+  // FC5_I2S_init();
   FLEXCOMM3_init();
   FLEXCOMM1_init();
 }

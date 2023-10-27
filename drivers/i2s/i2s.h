@@ -24,8 +24,8 @@ typedef void (*i2s_cb_func)(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 typedef struct i2s_context_s
 {
     I2S_Type *base;
-    dma_handle_t *dma_handle;
-    i2s_dma_handle_t *i2s_dma_handle;
+    dma_handle_t dma_handle;
+    i2s_dma_handle_t i2s_dma_handle;
 
 } i2s_context_t;
 
