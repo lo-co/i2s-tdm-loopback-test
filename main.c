@@ -112,20 +112,6 @@ static event_t current_events = {.idx = 0, .evt_times = {0}};
  * Code
  ******************************************************************************/
 
-static void generate_wave()
-{
-	// This is generating a shit wave but it works for the moment
-	// Volume is 1/4 max
-	int32_t max_vol = 16777216;
-
-	// PRINTF("Generating wave now...\r\n");
-
-	for (uint8_t i = 0; i < 48; i++)
-	{
-		wave[i] = (int32_t)(max_vol * sin(2*M_PI /48*i));
-	}
-}
-
 void APP_GPIO_INTA_IRQHandler(void)
 {
     update_evt_times(RCV_INTERRUPT, &current_events);

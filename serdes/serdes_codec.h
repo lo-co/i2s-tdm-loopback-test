@@ -1,3 +1,11 @@
+/** @file serdes_codec.h
+ *
+ * Defines interface functions for using the Cirrus 42488 CODEC found
+ * on the MIMXRT685-AUD-EVK.
+ *
+ * @author Matt Richardson
+ * @date October 27 2023
+*/
 #ifndef _SERDES_CODEC_H
 #define _SERDES_CODEC_H
 

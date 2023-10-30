@@ -1,34 +1,25 @@
+/** @file i2s_dma_tdm_playback.c
+ *
+ * This is the original file used for benchmarking I2S communication and functionality.
+ * This file will be superceded by main.c
+ *
+ * @author Matt Richardson
+*/
+
 #include <stdio.h>
 #include "pin_mux.h"
 #include "board.h"
 #include "fsl_debug_console.h"
-#include "fsl_i2s_dma.h"
-#include "fsl_codec_common.h"
-#include "fsl_codec_adapter.h"
 #include <stdbool.h>
-#include "fsl_cs42448.h"
-#include "math.h"
-#include "board/peripherals.h"
 #include "drivers/i2s/i2s.h"
 #include "serdes/serdes_event.h"
 #include "serdes/serdes_codec.h"
+#include "serdes/serdes_defs.h"
+#include "serdes/serdes_utilities.h"
+#include "serdes/serdes_gpio.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-
-/* Buffer related definitions */
-// Increase buffer size to accommodate adding sine into one channel
-#define SAMPLE_SIZE_MS (8U)
-#define SAMPLE_PER_MS (48)
-#define BYTES_PER_SAMPLE (4)
-#define NUM_CHANNELS (8)
-#define BUFFER_SIZE   (SAMPLE_SIZE_MS * SAMPLE_PER_MS * BYTES_PER_SAMPLE * NUM_CHANNELS)
-#define BUFFER_NUMBER (8U)
-
-/* Constants for data being pushed around */
-#define CONST_DATA (0xdeadbeef)
-#define M_PI 3.14159265358979323846
-
 /* Definitions for switch usage... */
 #define APP_GPIO_INTA_IRQHandler GPIO_INTA_DriverIRQHandler
 #define APP_SW_IRQ               GPIO_INTA_IRQn
@@ -73,15 +64,12 @@ static uint32_t tx_index = 0U, rx_index = 0U;
 volatile uint32_t emptyBlock = BUFFER_NUMBER;
 volatile uint32_t emptyFC4Buffer = BUFFER_NUMBER;
 
-void *rxData = NULL;
-void *txData = NULL;
 static i2s_transfer_t xfer;
 static i2s_transfer_t tx_xfer;
 
 uint64_t evt_times[5] = {0};
 
 int32_t wave[48] = {0};
-uint8_t current_evt_idx = 0;
 
 uint16_t g_tx_error = 0;
 
@@ -92,46 +80,44 @@ static event_t current_events = {.idx = 0, .evt_times = {0}};
 /*******************************************************************************
  * Code
  ******************************************************************************/
-static void generate_wave()
+void sw2_int_cb(void *usrData)
 {
-	// This is generating a shit wave but it works for the moment
-	// Volume is 1/4 max
-	int32_t max_vol = 16777216;
-
-	// PRINTF("Generating wave now...\r\n");
-
-	for (uint8_t i = 0; i < 48; i++)
-	{
-		wave[i] = (int32_t)(max_vol * sin(2*M_PI /48*i));
-	}
-}
-
-void APP_GPIO_INTA_IRQHandler(void)
-{
+    (void)usrData;
     serdes_update_evt_times(RCV_INTERRUPT, &current_events);
-    /* clear the interrupt status */
-    GPIO_PinClearInterruptFlag(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
-    /* Change state of switch. */
     if (g_interruptEnabled)
     {
         memset(rcv5_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
     }
     g_interruptEnabled = !g_interruptEnabled;
-
-    SDK_ISR_EXIT_BARRIER;
 }
+// void APP_GPIO_INTA_IRQHandler(void)
+// {
+//     // serdes_update_evt_times(RCV_INTERRUPT, &current_events);
+//     /* clear the interrupt status */
+//     GPIO_PinClearInterruptFlag(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
+//     /* Change state of switch. */
+//     // if (g_interruptEnabled)
+//     // {
+//     //     memset(rcv5_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
+//     // }
+//     // g_interruptEnabled = !g_interruptEnabled;
+//     sw2_int_cb(NULL);
 
-static void enable_sw_interrupt()
-{
-    gpio_interrupt_config_t config = {kGPIO_PinIntEnableEdge, kGPIO_PinIntEnableLowOrFall};
+//     SDK_ISR_EXIT_BARRIER;
+// }
 
-    EnableIRQ(APP_SW_IRQ);
 
-    /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
-    // Ugh...config tool does a half ass job of this
-    GPIO_SetPinInterruptConfig(SW2_GPIO, SW2_PORT, SW2_PIN, &config);
-    GPIO_PinEnableInterrupt(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
-}
+// static void enable_sw_interrupt()
+// {
+//     gpio_interrupt_config_t config = {kGPIO_PinIntEnableEdge, kGPIO_PinIntEnableLowOrFall};
+
+//     EnableIRQ(APP_SW_IRQ);
+
+//     /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
+//     // Ugh...config tool does a half ass job of this
+//     GPIO_SetPinInterruptConfig(SW2_GPIO, SW2_PORT, SW2_PIN, &config);
+//     GPIO_PinEnableInterrupt(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
+// }
 
 static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 {
@@ -228,13 +214,18 @@ void i2s_tx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completi
  */
 int main(void)
 {
+    serdes_gpio_cfg_t gpio_cfg = {.sw2_cb = sw2_int_cb};
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
+    serdes_gpio_init(gpio_cfg);
     i2s_init(fc1_config);
     i2s_init(fc3_config);
     i2s_init(fc4_config);
     i2s_init(fc5_config);
+
+    // Provide a quarter of the volume...
+    generate_tone(wave, 48, 16777216);
 
     // Enable GPIO Ports...not certain why this not done in the pin mux functionality
     // Don't understand - all this does is enable the clocks for these ports but this
@@ -242,7 +233,7 @@ int main(void)
     GPIO_PortInit(GPIO, 0U);
     GPIO_PortInit(GPIO, 1U);
 
-    enable_sw_interrupt();
+    // enable_sw_interrupt();
 
     CLOCK_EnableClock(kCLOCK_InputMux);
 
@@ -261,7 +252,6 @@ int main(void)
 	}
 
     /* Generate wave for I2S transmission */
-    generate_wave();
     uint8_t rcv5_idx = 0;
     i2s_transfer_t txfr_data;
     static bool trans_rcv = false;

@@ -43,56 +43,6 @@
             </pin_labels>
          </pins_profile>
          <functions_list>
-            <function name="BOARD_InitCS42448Pins">
-               <description>Configures pin routing and optionally pin electrical features.</description>
-               <options>
-                  <callFromInitBoot>true</callFromInitBoot>
-                  <coreID>cm33</coreID>
-                  <enableClock>true</enableClock>
-               </options>
-               <dependencies>
-                  <dependency resourceType="SWComponent" resourceId="platform.drivers.common" description="Pins initialization requires the COMMON Driver in the project." problem_level="2" source="Pins:BOARD_InitCS42448Pins">
-                     <feature name="enabled" evaluation="equal" configuration="cm33">
-                        <data>true</data>
-                     </feature>
-                  </dependency>
-                  <dependency resourceType="SWComponent" resourceId="platform.drivers.lpc_iopctl" description="Pins initialization requires the LPC_IOPCTL Driver in the project." problem_level="2" source="Pins:BOARD_InitCS42448Pins">
-                     <feature name="enabled" evaluation="equal" configuration="cm33">
-                        <data>true</data>
-                     </feature>
-                  </dependency>
-               </dependencies>
-               <pins>
-                  <pin peripheral="SYSCON" signal="MCLK" pin_num="K16" pin_signal="PIO1_10/MCLK/FREQME_GPIO_CLK/CTIMER_INP10/CLKOUT">
-                     <pin_features>
-                        <pin_feature name="pupdena" value="disabled"/>
-                        <pin_feature name="pupdsel" value="pullDown"/>
-                        <pin_feature name="ibena" value="disabled"/>
-                        <pin_feature name="slew_rate" value="normal"/>
-                        <pin_feature name="drive" value="full"/>
-                        <pin_feature name="amena" value="disabled"/>
-                        <pin_feature name="odena" value="disabled"/>
-                        <pin_feature name="iiena" value="disabled"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM2" signal="RXD_SDA_MOSI_DATA" pin_num="D6" pin_signal="PIO0_16/FC2_RXD_SDA_MOSI_DATA/SCT0_GPI2/SCT0_OUT2/CTIMER2_MAT2/I2S_BRIDGE_DATA_IN/SEC_PIO0_16">
-                     <pin_features>
-                        <pin_feature name="pupdena" value="enabled"/>
-                        <pin_feature name="pupdsel" value="pullUp"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="odena" value="enabled"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM2" signal="TXD_SCL_MISO_WS" pin_num="A5" pin_signal="PIO0_15/FC2_TXD_SCL_MISO_WS/SCT0_GPI1/SCT0_OUT1/CTIMER2_MAT1/I2S_BRIDGE_WS_IN/SEC_PIO0_15">
-                     <pin_features>
-                        <pin_feature name="pupdena" value="enabled"/>
-                        <pin_feature name="pupdsel" value="pullUp"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="odena" value="enabled"/>
-                     </pin_features>
-                  </pin>
-               </pins>
-            </function>
             <function name="BOARD_InitDebugConsolePins">
                <description>Configures pin routing and optionally pin electrical features.</description>
                <options>
@@ -135,84 +85,6 @@
                         <pin_feature name="amena" value="disabled"/>
                         <pin_feature name="odena" value="disabled"/>
                         <pin_feature name="iiena" value="disabled"/>
-                     </pin_features>
-                  </pin>
-               </pins>
-            </function>
-            <function name="BOARD_InitPins">
-               <description>Configures pin routing and optionally pin electrical features.</description>
-               <options>
-                  <callFromInitBoot>true</callFromInitBoot>
-                  <prefix></prefix>
-                  <coreID>cm33</coreID>
-                  <enableClock>true</enableClock>
-               </options>
-               <dependencies>
-                  <dependency resourceType="SWComponent" resourceId="platform.drivers.common" description="Pins initialization requires the COMMON Driver in the project." problem_level="2" source="Pins:BOARD_InitPins">
-                     <feature name="enabled" evaluation="equal" configuration="cm33">
-                        <data>true</data>
-                     </feature>
-                  </dependency>
-                  <dependency resourceType="SWComponent" resourceId="platform.drivers.lpc_iopctl" description="Pins initialization requires the LPC_IOPCTL Driver in the project." problem_level="2" source="Pins:BOARD_InitPins">
-                     <feature name="enabled" evaluation="equal" configuration="cm33">
-                        <data>true</data>
-                     </feature>
-                  </dependency>
-                  <dependency resourceType="SWComponent" resourceId="platform.drivers.lpc_gpio" description="Pins initialization requires the LPC_GPIO Driver in the project." problem_level="2" source="Pins:BOARD_InitPins">
-                     <feature name="enabled" evaluation="equal" configuration="cm33">
-                        <data>true</data>
-                     </feature>
-                  </dependency>
-               </dependencies>
-               <pins>
-                  <pin peripheral="GPIO" signal="PIO0, 10" pin_num="J3" pin_signal="PIO0_10/FC1_CTS_SDA_SSEL0/SCT0_GPI7/SCT0_OUT7/CTIMER1_MAT3/FC0_SSEL2/SEC_PIO0_10">
-                     <pin_features>
-                        <pin_feature name="direction" value="INPUT"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM4" signal="SCK" pin_num="D11" pin_signal="PIO0_28/FC4_SCK/CTIMER4_MAT0/I2S_BRIDGE_CLK_OUT/SEC_PIO0_28">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="full"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM4" signal="TXD_SCL_MISO_WS" pin_num="B10" pin_signal="PIO0_29/FC4_TXD_SCL_MISO_WS/CTIMER4_MAT1/I2S_BRIDGE_WS_OUT/SEC_PIO0_29">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                        <pin_feature name="pupdena" value="disabled"/>
-                        <pin_feature name="pupdsel" value="pullDown"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="full"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM4" signal="RXD_SDA_MOSI_DATA" pin_num="C11" pin_signal="PIO0_30/FC4_RXD_SDA_MOSI_DATA/CTIMER4_MAT2/I2S_BRIDGE_DATA_OUT/SEC_PIO0_30">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="normal"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM5" signal="SCK" pin_num="G16" pin_signal="PIO1_3/FC5_SCK">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="full"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM5" signal="TXD_SCL_MISO_WS" pin_num="G17" pin_signal="PIO1_4/FC5_TXD_SCL_MISO_WS">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="full"/>
-                     </pin_features>
-                  </pin>
-                  <pin peripheral="FLEXCOMM5" signal="RXD_SDA_MOSI_DATA" pin_num="J16" pin_signal="PIO1_5/FC5_RXD_SDA_MOSI_DATA">
-                     <pin_features>
-                        <pin_feature name="direction" value="OUTPUT"/>
-                        <pin_feature name="ibena" value="enabled"/>
-                        <pin_feature name="drive" value="full"/>
                      </pin_features>
                   </pin>
                </pins>
@@ -330,11 +202,8 @@
          </dcdx_profile>
          <dcdx_configurations/>
       </dcdx>
-      <periphs name="Peripherals" version="13.0" enabled="true" update_project_code="true">
-         <generated_project_files>
-            <file path="../board/peripherals.c" update_enabled="true"/>
-            <file path="../board/peripherals.h" update_enabled="true"/>
-         </generated_project_files>
+      <periphs name="Peripherals" version="13.0" enabled="false" update_project_code="true">
+         <generated_project_files/>
          <peripherals_profile>
             <processor_version>14.0.0</processor_version>
          </peripherals_profile>

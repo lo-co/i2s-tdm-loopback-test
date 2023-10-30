@@ -1,25 +1,18 @@
+/** @file i2s.c
+ *
+ * Driver implementation of I2S.
+*/
+
 #include "i2s.h"
 #include "assert.h"
 #include "fsl_clock.h"
 #include "fsl_gpio.h"
 #include "fsl_iopctl.h"
+#include "../gpio/gpio_def.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-
-#define IOPCTL_PIO_ANAMUX_DI 0x00u        /*!<@brief Analog mux is disabled */
-#define IOPCTL_PIO_FULLDRIVE_DI 0x00u     /*!<@brief Normal drive */
-#define IOPCTL_PIO_FULLDRIVE_EN 0x0100u   /*!<@brief Full drive enable */
-#define IOPCTL_PIO_FUNC0 0x00u            /*!<@brief Selects pin function 0 */
-#define IOPCTL_PIO_FUNC1 0x01u            /*!<@brief Selects pin function 1 */
-#define IOPCTL_PIO_INBUF_EN 0x40u         /*!<@brief Enables input buffer function */
-#define IOPCTL_PIO_INV_DI 0x00u           /*!<@brief Input function is not inverted */
-#define IOPCTL_PIO_PSEDRAIN_DI 0x00u      /*!<@brief Pseudo Output Drain is disabled */
-#define IOPCTL_PIO_PULLDOWN_EN 0x00u      /*!<@brief Enable pull-down function */
-#define IOPCTL_PIO_PUPD_DI 0x00u          /*!<@brief Disable pull-up / pull-down function */
-#define IOPCTL_PIO_SLEW_RATE_NORMAL 0x00u /*!<@brief Normal mode */
-
 #define I2S_DMA DMA0
 #define FLEXCOMM_CLOCK_SOURCE 24576000UL
 

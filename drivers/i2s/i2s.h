@@ -18,6 +18,10 @@
 #include "fsl_i2s.h"
 #include "fsl_i2s_dma.h"
 
+/*******************************************************************************
+ * Type Definitions
+ ******************************************************************************/
+
 /** Callback for I2S DMA */
 typedef void (*i2s_cb_func)(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 
@@ -52,7 +56,6 @@ typedef enum shared_set_e {
     SHARED_SET_2,
 } shared_set_t;
 
-
 /** I2S configuration structure */
 typedef struct i2s_init_s
 {
@@ -67,6 +70,10 @@ typedef struct i2s_init_s
     bool share_clk;
     shared_set_t shared_clk_set;
 } i2s_init_t;
+
+/*******************************************************************************
+ * Function Prototypes
+ ******************************************************************************/
 
 void i2s_init(i2s_init_t config);
 

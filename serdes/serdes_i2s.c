@@ -1,22 +1,28 @@
 #include "serdes_i2s.h"
-
 #include "fsl_i2c.h"
+#include "serdes_defs.h"
 
-#define SAMPLE_SIZE_MS (8U)
-#define SAMPLE_RATE_HZ (48000)
-#define SAMPLE_PER_MS (SAMPLE_RATE_HZ / 1000)
-#define BYTES_PER_SAMPLE (4)
-#define NUMBER_TDM_CH  (8)
-#define BUFFER_SIZE   (SAMPLE_SIZE_MS * SAMPLE_PER_MS * BYTES_PER_SAMPLE * NUMBER_TDM_CH)
-#define BUFFER_NUMBER (8U)
+/*******************************************************************************
+ * Definitions
+ ******************************************************************************/
 
 #define DATA_LEN_BITS  (BYTES_PER_SAMPLE * 8U)
 
+/*******************************************************************************
+ * Type Definitions
+ ******************************************************************************/
+/*******************************************************************************
+ * Function Prototypes
+ ******************************************************************************/
 /** Transmit data if available in the buffer */
 void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 
 /** @brief Receive incoming data and make sure it gets where it needs to */
 void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
+
+/*******************************************************************************
+ * Variables
+ ******************************************************************************/
 
 uint8_t tx_idx = 0, rx_idx = 0;
 
@@ -27,16 +33,20 @@ AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t tx_buffer[BUFFER_NUMBER * BUFFER_SI
 // Bridge I2S
 i2s_context_t tx_i2s_context;
 i2s_init_t tx_config = {.flexcomm_bus = FLEXCOMM_4, .is_transmit = true,
-                        .is_master = true, .active_channels = NUMBER_TDM_CH,
+                        .is_master = true, .active_channels = NUM_CHANNELS,
                         .sample_rate = SAMPLE_RATE_HZ, .datalength = DATA_LEN_BITS,
                         .callback = tx_i2s_cb, .context = &tx_i2s_context,
                         .share_clk = false, .shared_clk_set = NO_SHARE};
 i2s_context_t rx_i2s_context;
 i2s_init_t rx_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
-                        .is_master = true, .active_channels = NUMBER_TDM_CH,
+                        .is_master = true, .active_channels = NUM_CHANNELS,
                         .sample_rate = SAMPLE_RATE_HZ, .datalength = DATA_LEN_BITS,
                         .callback = rx_i2s_cb, .context = &rx_i2s_context,
                         .share_clk = false, .shared_clk_set = NO_SHARE};
+
+/*******************************************************************************
+ * Function Definitions
+ ******************************************************************************/
 
 void serdes_i2s_init(bool is_slave)
 {
