@@ -1,10 +1,3 @@
-/*
- * Copyright 2019 NXP
- * All rights reserved.
- *
- * SPDX-License-Identifier: BSD-3-Clause
- */
-
 #include <stdio.h>
 #include "pin_mux.h"
 #include "board.h"
@@ -12,18 +5,16 @@
 #include "fsl_i2s_dma.h"
 #include "fsl_codec_common.h"
 #include "fsl_codec_adapter.h"
-#include "fsl_ostimer.h"
 #include <stdbool.h>
 #include "fsl_cs42448.h"
 #include "math.h"
 #include "board/peripherals.h"
 #include "drivers/i2s/i2s.h"
+#include "serdes/serdes_event.h"
+#include "serdes/serdes_codec.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define DEMO_CODEC_I2C_BASEADDR         I2C2
-#define DEMO_CODEC_I2C_INSTANCE         2U
-#define DEMO_TDM_DATA_START_POSITION    1U
 
 /* Buffer related definitions */
 // Increase buffer size to accommodate adding sine into one channel
@@ -43,23 +34,8 @@
 #define APP_SW_IRQ               GPIO_INTA_IRQn
 
 /*******************************************************************************
- * Prototypes
- ******************************************************************************/
-static void DEMO_InitCodec(void);
-extern void BORAD_CodecReset(bool state);
-/*******************************************************************************
  * Variables
  ******************************************************************************/
-cs42448_config_t cs42448Config = {
-    .DACMode      = kCS42448_ModeSlave,
-    .ADCMode      = kCS42448_ModeSlave,
-    .reset        = NULL,
-    .master       = false,
-    .i2cConfig    = {.codecI2CInstance = DEMO_CODEC_I2C_INSTANCE},
-    .format       = {.sampleRate = 48000U, .bitWidth = 24U},
-    .bus          = kCS42448_BusTDM,
-    .slaveAddress = CS42448_I2C_ADDR,
-};
 void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
 void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *);
 void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
@@ -88,7 +64,6 @@ i2s_init_t fc3_config = {.flexcomm_bus = FLEXCOMM_3, .is_transmit = true,
                         .datalength = 32, .callback = i2s_tx_Callback, .context = &fc3_i2s_context,
                         .share_clk = false, .shared_clk_set = NO_SHARE};
 
-codec_config_t boardCodecConfig = {.codecDevType = kCODEC_CS42448, .codecDevConfig = &cs42448Config};
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t tx_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv5_buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
@@ -97,8 +72,6 @@ static uint32_t tx_index = 0U, rx_index = 0U;
 
 volatile uint32_t emptyBlock = BUFFER_NUMBER;
 volatile uint32_t emptyFC4Buffer = BUFFER_NUMBER;
-extern codec_config_t boardCodecConfig;
-codec_handle_t codecHandle;
 
 void *rxData = NULL;
 void *txData = NULL;
@@ -113,32 +86,12 @@ uint8_t current_evt_idx = 0;
 uint16_t g_tx_error = 0;
 
 bool g_interruptEnabled = false;
-typedef struct event_s {
-    uint8_t idx;
-    uint64_t evt_times[5];
-} event_t;
-
-typedef enum evt_type_e
-{
-    RCV_INTERRUPT = 0,
-    START_TXMIT = 1,
-    START_RCV = 2,
-    RCV_TXMIT = 3,
-} evt_type_t;
-
-static uint64_t g_tick_per_us = 0;
-
-static uint64_t ostime_get_us();
 
 static event_t current_events = {.idx = 0, .evt_times = {0}};
-
-// static bool now_receiving = false;
 
 /*******************************************************************************
  * Code
  ******************************************************************************/
-static void update_evt_times(evt_type_t evt_type, event_t *events);
-
 static void generate_wave()
 {
 	// This is generating a shit wave but it works for the moment
@@ -155,7 +108,7 @@ static void generate_wave()
 
 void APP_GPIO_INTA_IRQHandler(void)
 {
-    update_evt_times(RCV_INTERRUPT, &current_events);
+    serdes_update_evt_times(RCV_INTERRUPT, &current_events);
     /* clear the interrupt status */
     GPIO_PinClearInterruptFlag(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
     /* Change state of switch. */
@@ -173,46 +126,15 @@ static void enable_sw_interrupt()
     gpio_interrupt_config_t config = {kGPIO_PinIntEnableEdge, kGPIO_PinIntEnableLowOrFall};
 
     EnableIRQ(APP_SW_IRQ);
+
     /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
     // Ugh...config tool does a half ass job of this
     GPIO_SetPinInterruptConfig(SW2_GPIO, SW2_PORT, SW2_PIN, &config);
     GPIO_PinEnableInterrupt(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
 }
 
-static void ostime_init()
-{
-    CLOCK_AttachClk(kHCLK_to_OSTIMER_CLK);
-    OSTIMER_Init(OSTIMER0);
-
-    RSTCTL1->PRSTCTL0 != RSTCTL1_PRSTCTL0_OSEVT_TIMER_RST_MASK;
-    RSTCTL1->PRSTCTL0 &= ~RSTCTL1_PRSTCTL0_OSEVT_TIMER_RST_MASK;
-
-    g_tick_per_us = (uint32_t)(CLOCK_GetFreq(kCLOCK_CoreSysClk) / 1e6);
-}
-
-static uint64_t ostime_get_us()
-{
-    const uint64_t timer_ticks = OSTIMER_GetCurrentTimerValue(OSTIMER0);
-
-    return (uint64_t)(timer_ticks/g_tick_per_us);
-
-}
-
-static void update_evt_times(evt_type_t evt_type, event_t *events)
-{
-    uint64_t c_time = ostime_get_us();
-    events->evt_times[evt_type] = c_time;
-    PRINTF("%d: %d\r\n", evt_type, c_time);
-}
-
-static void print_evt_data(event_t events)
-{
-    PRINTF("EVENT\tTIME\r\nINT_RCV\t%d\r\nTXMIT_START\t%d\r\nTXMIT_RCV\t%d\r\n",
-        events.evt_times[RCV_INTERRUPT], events.evt_times[START_TXMIT], events.evt_times[RCV_TXMIT]);
-}
 static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 {
-
 	int32_t *new_data = (int32_t *)(tx_Buffer + tx_index*BUFFER_SIZE);
 
     memcpy(new_data, rcv_transfer->data, BUFFER_SIZE);
@@ -228,16 +150,12 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 	if (g_interruptEnabled){
         if (!transmitting)
         {
-            update_evt_times(START_TXMIT, &current_events);
+            serdes_update_evt_times(START_TXMIT, &current_events);
             transmitting = true;
         }
 
 		for (uint32_t i = 0, wave_pos = 0; i < num_elements; wave_pos++)
 		{
-            // Copy incoming data on 0 and 1 into 2 and 3
-			// new_data[i+2] = new_data[i];
-			// new_data[i+3] = new_data[i+1];
-
 			new_data[i++] = wave[wave_pos % 48];
 			new_data[i++] = wave[wave_pos % 48];
 
@@ -248,26 +166,7 @@ static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
         if (emptyFC4Buffer < BUFFER_NUMBER)
         {
             I2S_TxTransferSendDMA(fc4_config.context->base, &fc4_config.context->i2s_dma_handle, tx_xfer);
-
-            // if (kStatus_Success != i2s_status)
-            // {
-            //     uint32_t fifo_cfg = FC4_I2S_TX_PERIPHERAL->FIFOCFG;
-            //     uint32_t cfg1 = FC4_I2S_TX_PERIPHERAL->CFG1;
-            //     uint32_t cfg2 = FC4_I2S_TX_PERIPHERAL->CFG2;
-            //     uint32_t trig = FC4_I2S_TX_PERIPHERAL->FIFOTRIG;
-            //     uint32_t intstat = FC4_I2S_TX_PERIPHERAL->FIFOINTSTAT;
-            //     uint32_t stat = FC4_I2S_TX_PERIPHERAL->STAT;
-
-            //     /* If the second bit of STAT is high, then there is a slave frame error flag  */
-            //     if (stat>>1 & 0x1){
-            //         PRINTF("TXFR Failure %X\t%X\t%X\t%X\t%X\t%X\n\r", fifo_cfg, cfg1, cfg2, trig, intstat, stat);
-
-            //         // Clear the bit by writing 1
-            //         FC4_I2S_TX_PERIPHERAL->STAT |= 0x2;
-            //     }
-            // }
         }
-
 	}
     else
     {
@@ -304,7 +203,8 @@ void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
     ;
 }
 
-void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *){
+void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *)
+{
     emptyFC4Buffer++;
 }
 
@@ -336,8 +236,6 @@ int main(void)
     i2s_init(fc4_config);
     i2s_init(fc5_config);
 
-    // BOARD_InitBootPeripherals();
-
     // Enable GPIO Ports...not certain why this not done in the pin mux functionality
     // Don't understand - all this does is enable the clocks for these ports but this
     // should already be done
@@ -348,17 +246,11 @@ int main(void)
 
     CLOCK_EnableClock(kCLOCK_InputMux);
 
-    SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
-
-    ostime_init();
-
-    cs42448Config.i2cConfig.codecI2CSourceClock = CLOCK_GetFlexCommClkFreq(2);
-    cs42448Config.format.mclk_HZ                = CLOCK_GetMclkClkFreq();
+    serdes_event_init();
 
     PRINTF("I2S TDM record playback example started!\n\r");
 
-    /* codec initialization */
-    DEMO_InitCodec();
+    serdes_codec_init();
 
     PRINTF("Starting TDM record playback\n\r");
 
@@ -367,10 +259,6 @@ int main(void)
 	{
 		tx_Buffer[i] = rcv_Buffer[i] = rcv5_buffer[i] = 0;
 	}
-
-    // uint32_t fifo_cfg = FC4_I2S_TX_PERIPHERAL->FIFOCFG;
-
-    // PRINTF("FIFOCFG: %X\n\r", fifo_cfg);
 
     /* Generate wave for I2S transmission */
     generate_wave();
@@ -401,7 +289,7 @@ int main(void)
         {
             if (!start_rcv)
             {
-                update_evt_times(START_RCV, &current_events);
+                serdes_update_evt_times(START_RCV, &current_events);
                 start_rcv = true;
             }
 
@@ -413,23 +301,15 @@ int main(void)
             {
                 rcv5_idx = rcv5_idx + 1 >= BUFFER_NUMBER ? 0 : rcv5_idx+1;
                 uint32_t *data = (uint32_t *)txfr_data.data;
+
+                // Can't tell, but it looks like the highest byte can be garbage (it
+                // actually looks like it is the highest bit, but this will do.)
                 if (*(data+8) != 0 && (*(data+8 )<<4 == *(data + 9)<<4) && !trans_rcv)
                 {
-
-                    update_evt_times(RCV_TXMIT, &current_events);
-                    // PRINTF("Receiving transmission\r\n");
-                    print_evt_data(current_events);
+                    serdes_update_evt_times(RCV_TXMIT, &current_events);
                     trans_rcv = true;
-
-
-                    // PRINTF("Data is the same\r\n");
                 }
             }
-            else
-            {
-                // PRINTF("test\r\n");
-            }
-
         }
         else
         {
@@ -440,15 +320,3 @@ int main(void)
     }
 }
 
-static void DEMO_InitCodec(void)
-{
-    if (CODEC_Init(&codecHandle, &boardCodecConfig) != kStatus_Success)
-    {
-        PRINTF("CODEC_Init failed!\r\n");
-        assert(false);
-    }
-    CODEC_SetVolume(&codecHandle, 0, 100);
-    CODEC_SetVolume(&codecHandle, 1, 100);
-
-    PRINTF("\r\nCodec Init Done.\r\n");
-}

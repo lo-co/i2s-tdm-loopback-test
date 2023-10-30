@@ -4,6 +4,10 @@
 #include "fsl_gpio.h"
 #include "fsl_iopctl.h"
 
+/*******************************************************************************
+ * Definitions
+ ******************************************************************************/
+
 #define IOPCTL_PIO_ANAMUX_DI 0x00u        /*!<@brief Analog mux is disabled */
 #define IOPCTL_PIO_FULLDRIVE_DI 0x00u     /*!<@brief Normal drive */
 #define IOPCTL_PIO_FULLDRIVE_EN 0x0100u   /*!<@brief Full drive enable */
@@ -17,8 +21,12 @@
 #define IOPCTL_PIO_SLEW_RATE_NORMAL 0x00u /*!<@brief Normal mode */
 
 #define I2S_DMA DMA0
-
 #define FLEXCOMM_CLOCK_SOURCE 24576000UL
+
+/*******************************************************************************
+ * Type Definitions
+ ******************************************************************************/
+
 typedef struct i2s_pins_s {
     uint8_t port;
     uint8_t sck_pin;
@@ -26,37 +34,15 @@ typedef struct i2s_pins_s {
     uint8_t data_pin;
 } i2s_pins_t;
 
-/** Is DMA initialized
- *
- * This assumes that all I2S buses use the same DMA instance (DMA0). Ensure
- * that DMA gets initialized only once.
-*/
-static bool base_dma_initialized = false;
+/*******************************************************************************
+ * Function Prototypes
+ ******************************************************************************/
 
 /** Populate the peripheral base address
  *
  * @param config I2S configuration for bus
 */
 static void set_peripheral_address(i2s_init_t config);
-
-/** Pin definitions for Flexcomm busses supporting I2S
- *
- * These pinouts are described in Table 4.  Each one of these
- * pinout designations are for use with FUNC1 in the pin mux
- * configuration.
- *
- */
-const i2s_pins_t i2s_pin_config[] =
-{
-    {.port = 0U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},
-    {.port = 0U, .sck_pin = 7U,  .ws_pin = 8U,  .data_pin = 9U},
-    {.port = 0U, .sck_pin = 14U, .ws_pin = 15U, .data_pin = 16U},
-    {.port = 0U, .sck_pin = 21U, .ws_pin = 22U, .data_pin = 23U},
-    {.port = 0U, .sck_pin = 28U, .ws_pin = 29U, .data_pin = 30U},
-    {.port = 1U, .sck_pin = 3U,  .ws_pin = 4U,  .data_pin = 5U},
-    {.port = 3U, .sck_pin = 25U, .ws_pin = 26U, .data_pin = 27U},
-    {.port = 4U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},
-};
 
 /** Configure I2S pins
  *
@@ -93,6 +79,40 @@ static void dma_init(i2s_init_t config);
  * @param config I2S configuration structure
 */
 static void clock_init(i2s_init_t config);
+
+/*******************************************************************************
+ * Variables
+ ******************************************************************************/
+
+/** Is DMA initialized
+ *
+ * This assumes that all I2S buses use the same DMA instance (DMA0). Ensure
+ * that DMA gets initialized only once.
+*/
+static bool base_dma_initialized = false;
+
+/** Pin definitions for Flexcomm busses supporting I2S
+ *
+ * These pinouts are described in Table 4.  Each one of these
+ * pinout designations are for use with FUNC1 in the pin mux
+ * configuration.
+ *
+ */
+const i2s_pins_t i2s_pin_config[] =
+{
+    {.port = 0U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},
+    {.port = 0U, .sck_pin = 7U,  .ws_pin = 8U,  .data_pin = 9U},
+    {.port = 0U, .sck_pin = 14U, .ws_pin = 15U, .data_pin = 16U},
+    {.port = 0U, .sck_pin = 21U, .ws_pin = 22U, .data_pin = 23U},
+    {.port = 0U, .sck_pin = 28U, .ws_pin = 29U, .data_pin = 30U},
+    {.port = 1U, .sck_pin = 3U,  .ws_pin = 4U,  .data_pin = 5U},
+    {.port = 3U, .sck_pin = 25U, .ws_pin = 26U, .data_pin = 27U},
+    {.port = 4U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},
+};
+
+/*******************************************************************************
+ * Function Definitions
+ ******************************************************************************/
 
 void i2s_init(i2s_init_t config)
 {
@@ -317,6 +337,6 @@ static void clock_init(i2s_init_t config)
     }
 
     // Set MCLK direction as output; this is defined in section 4.5.6.1
-    // TODO: Make sure this doesn't have an impact if added multiple times
+    // This can be set multiple times no big deal...
     SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
 }
