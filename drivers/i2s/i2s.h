@@ -46,6 +46,13 @@ typedef enum flexcomm_port_e {
     FLEXCOMM_ND,
 } flexcomm_port_t;
 
+typedef enum shared_set_e {
+    NO_SHARE = 0,
+    SHARED_SET_1,
+    SHARED_SET_2,
+} shared_set_t;
+
+
 /** I2S configuration structure */
 typedef struct i2s_init_s
 {
@@ -57,10 +64,10 @@ typedef struct i2s_init_s
     uint32_t datalength;
     i2s_cb_func callback;
     i2s_context_t *context;
+    bool share_clk;
+    shared_set_t shared_clk_set;
 } i2s_init_t;
 
 void i2s_init(i2s_init_t config);
-
-// static void i2s_deinit(i2s_init_t config);
 
 #endif

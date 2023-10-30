@@ -64,18 +64,6 @@ void i2s_rx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completi
 void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *);
 void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 void i2s_tx_Callback(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
-// Bridge I2S
-i2s_context_t fc4_i2s_context;
-i2s_init_t fc4_config = {.flexcomm_bus = FLEXCOMM_4, .is_transmit = true,
-                        .is_master = true, .active_channels = 8, .sample_rate = 48000,
-                        .datalength = 32, .callback = fc4_i2s_tx_cb, .context = &fc4_i2s_context,
-                        .share_clk = false, .shared_clk_set = NO_SHARE};
-i2s_context_t fc5_i2s_context;
-i2s_init_t fc5_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
-                        .is_master = false, .active_channels = 8, .sample_rate = 48000,
-                        .datalength = 32, .callback = fc5_i2s_rx_cb, .context = &fc5_i2s_context,
-                        .share_clk = false, .shared_clk_set = NO_SHARE};
-// Receiver for audio in from the codec
 i2s_context_t fc1_i2s_context;
 i2s_init_t fc1_config = {.flexcomm_bus = FLEXCOMM_1, .is_transmit = false,
                         .is_master = true, .active_channels = 8, .sample_rate = 48000,
@@ -89,6 +77,7 @@ i2s_init_t fc3_config = {.flexcomm_bus = FLEXCOMM_3, .is_transmit = true,
                         .share_clk = false, .shared_clk_set = NO_SHARE};
 
 codec_config_t boardCodecConfig = {.codecDevType = kCODEC_CS42448, .codecDevConfig = &cs42448Config};
+
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t tx_Buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
 AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rcv5_buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);

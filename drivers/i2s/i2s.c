@@ -1,5 +1,6 @@
 #include "i2s.h"
 #include "assert.h"
+#include "fsl_clock.h"
 #include "fsl_gpio.h"
 #include "fsl_iopctl.h"
 
@@ -79,6 +80,20 @@ static void i2s_pin_init(i2s_init_t config);
 
 static void dma_init(i2s_init_t config);
 
+/** Set up clock functionalities associated with I2S
+ *
+ * This will do several actions based on the input configuration:
+ * * attach audio pll clocks to the appropriate flexcomm ports
+ * * set up signal sharing.
+ * * set the mclk direction
+ *
+ * I2S signal sharing is discussed in chapter 4.  Registers are defined in
+ * 4.5.6 and I2S signal bridging is discussed at length in 4.6.2.  Bridging
+ *
+ * @param config I2S configuration structure
+*/
+static void clock_init(i2s_init_t config);
+
 void i2s_init(i2s_init_t config)
 {
     // Must have between 2 and 8 channels and they must be in pairs
@@ -88,6 +103,7 @@ void i2s_init(i2s_init_t config)
     assert(config.flexcomm_bus >= FLEXCOMM_0 && config.flexcomm_bus < FLEXCOMM_ND);
 
     i2s_config_t i2sConfig;
+    clock_init(config);
 
     i2s_pin_init(config);
 
@@ -165,12 +181,7 @@ void i2s_init(i2s_init_t config)
 
     // I2S CONFIGURATION COMPLETE //
 
-
     dma_init(config);
-
-    // Set MCLK direction as output
-    SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
-
 }
 
 // Documented in .h
@@ -222,6 +233,7 @@ static void set_peripheral_address(i2s_init_t config)
             break;
         default:
             break;
+
     }
 
 }
@@ -255,5 +267,56 @@ static void dma_init(i2s_init_t config)
         I2S_RxTransferCreateHandleDMA(config.context->base, &config.context->i2s_dma_handle,
                                       &config.context->dma_handle, config.callback, NULL);
     }
+}
 
+// Defined above
+static void clock_init(i2s_init_t config)
+{
+    switch (config.flexcomm_bus)
+    {
+        case FLEXCOMM_0:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM0);
+            break;
+        case FLEXCOMM_1:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM1);
+            break;
+        case FLEXCOMM_2:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM2);
+            break;
+        case FLEXCOMM_3:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM3);
+            break;
+        case FLEXCOMM_4:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM4);
+            break;
+        case FLEXCOMM_5:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM5);
+            break;
+        case FLEXCOMM_6:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM6);
+            break;
+        case FLEXCOMM_7:
+            CLOCK_AttachClk(kAUDIO_PLL_to_FLEXCOMM7);
+            break;
+        default:
+            break;
+    }
+
+    // Set up signal sharing as requested.  This is defined in section 4.5.6.11 for shared control set 0,
+    // 4.5.6.12 for shared set 2 and sections 4.5.6.3-10 for the control selection in I2S signal sharing.
+    // Bridging is explained in 4.6.2
+    if (config.share_clk && config.shared_clk_set != NO_SHARE)
+    {
+        SYSCTL1->SHAREDCTRLSET[config.shared_clk_set-1] = SYSCTL1_SHAREDCTRLSET_SHAREDSCKSEL(config.flexcomm_bus) |
+                                    SYSCTL1_SHAREDCTRLSET_SHAREDWSSEL(config.flexcomm_bus);
+    }
+    else if (config.shared_clk_set != NO_SHARE)
+    {
+        SYSCTL1->FCCTRLSEL[config.flexcomm_bus] = SYSCTL1_FCCTRLSEL_SCKINSEL(config.shared_clk_set) |
+                                                  SYSCTL1_FCCTRLSEL_WSINSEL(config.shared_clk_set);
+    }
+
+    // Set MCLK direction as output; this is defined in section 4.5.6.1
+    // TODO: Make sure this doesn't have an impact if added multiple times
+    SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
 }

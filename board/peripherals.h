@@ -9,89 +9,11 @@
 /***********************************************************************************************************************
  * Included files
  **********************************************************************************************************************/
-#include "fsl_dma.h"
 #include "fsl_common.h"
-#include "fsl_i2s.h"
-#include "fsl_i2s_dma.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
-
-/***********************************************************************************************************************
- * Definitions
- **********************************************************************************************************************/
-/* Definitions for BOARD_InitPeripherals functional group */
-/* Used DMA device. */
-#define DMA0_DMA_BASEADDR DMA0
-/* BOARD_InitPeripherals defines for FLEXCOMM4 */
-/* Definition of peripheral ID */
-#define FC4_I2S_TX_PERIPHERAL ((I2S_Type *)FLEXCOMM4)
-/* Definition of the clock source frequency */
-#define FC4_I2S_TX_CLOCK_SOURCE 24576000UL
-/* Selected DMA channel number. */
-#define FC4_I2S_TX_TX_DMA_CHANNEL 9
-/* Used DMA device. */
-#define FC4_I2S_TX_TX_DMA_BASEADDR DMA0
-/* BOARD_InitPeripherals defines for FLEXCOMM5 */
-/* Definition of peripheral ID */
-#define FC5_I2S_PERIPHERAL ((I2S_Type *)FLEXCOMM5)
-/* Definition of the clock source frequency */
-#define FC5_I2S_CLOCK_SOURCE 12288000UL
-/* Selected DMA channel number. */
-#define FC5_I2S_RX_DMA_CHANNEL 10
-/* Used DMA device. */
-#define FC5_I2S_RX_DMA_BASEADDR DMA0
-/* BOARD_InitPeripherals defines for FLEXCOMM3 */
-/* Definition of peripheral ID */
-#define FLEXCOMM3_PERIPHERAL ((I2S_Type *)FLEXCOMM3)
-/* Definition of the clock source frequency */
-#define FLEXCOMM3_CLOCK_SOURCE 24576000UL
-/* Selected DMA channel number. */
-#define FLEXCOMM3_TX_DMA_CHANNEL 7
-/* Used DMA device. */
-#define FLEXCOMM3_TX_DMA_BASEADDR DMA0
-/* BOARD_InitPeripherals defines for FLEXCOMM1 */
-/* Definition of peripheral ID */
-#define FLEXCOMM1_PERIPHERAL ((I2S_Type *)FLEXCOMM1)
-/* Definition of the clock source frequency */
-#define FLEXCOMM1_CLOCK_SOURCE 24576000UL
-/* Selected DMA channel number. */
-#define FLEXCOMM1_RX_DMA_CHANNEL 2
-/* Used DMA device. */
-#define FLEXCOMM1_RX_DMA_BASEADDR DMA0
-
-/***********************************************************************************************************************
- * Global variables
- **********************************************************************************************************************/
-extern const i2s_config_t FC4_I2S_TX_config;
-extern dma_handle_t FC4_I2S_TX_TX_Handle;
-extern void * fc4I2sTxData;
-extern i2s_dma_handle_t FC4_I2S_Tx_Handle;
-extern const i2s_config_t FC5_I2S_config;
-extern dma_handle_t FC5_I2S_RX_Handle;
-extern void * fc5RxData;
-extern i2s_dma_handle_t FC5_I2S_Rx_DMA_Handle;
-extern const i2s_config_t FLEXCOMM3_config;
-extern dma_handle_t i2sTxDmaHandle;
-extern void * txData;
-extern i2s_dma_handle_t i2sTxHandle;
-extern const i2s_config_t FLEXCOMM1_config;
-extern dma_handle_t i2sRxDmaHandle;
-extern void * rxData;
-extern i2s_dma_handle_t i2sRxHandle;
-
-/***********************************************************************************************************************
- * Callback functions
- **********************************************************************************************************************/
-/* I2S DMA callback function for the FC4_I2S_TX component (init. function BOARD_InitPeripherals)*/
-extern void fc4_i2s_tx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
-/* I2S DMA callback function for the FC5_I2S component (init. function BOARD_InitPeripherals)*/
-extern void fc5_i2s_rx_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
-/* I2S DMA callback function for the FLEXCOMM3 component (init. function BOARD_InitPeripherals)*/
-extern void i2s_tx_Callback(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
-/* I2S DMA callback function for the FLEXCOMM1 component (init. function BOARD_InitPeripherals)*/
-extern void i2s_rx_Callback(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 
 /***********************************************************************************************************************
  * Initialization functions
