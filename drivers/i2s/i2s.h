@@ -25,11 +25,12 @@
 /** Callback for I2S DMA */
 typedef void (*i2s_cb_func)(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 
+/** Context used by main application for I2S operations */
 typedef struct i2s_context_s
 {
-    I2S_Type *base;
-    dma_handle_t dma_handle;
-    i2s_dma_handle_t i2s_dma_handle;
+    I2S_Type *base;                 ///< This is the peripheral base address
+    dma_handle_t dma_handle;        ///< DMA handle for transfers
+    i2s_dma_handle_t i2s_dma_handle;///< I2S DMA handle for transfers
 
 } i2s_context_t;
 
@@ -50,6 +51,7 @@ typedef enum flexcomm_port_e {
     FLEXCOMM_ND,
 } flexcomm_port_t;
 
+/** Defines which of the two shared sets a shared clock is occupying */
 typedef enum shared_set_e {
     NO_SHARE = 0,
     SHARED_SET_1,
@@ -59,22 +61,26 @@ typedef enum shared_set_e {
 /** I2S configuration structure */
 typedef struct i2s_init_s
 {
-    flexcomm_port_t flexcomm_bus;
-    bool is_transmit;
-    bool is_master;
-    uint8_t active_channels;
-    uint32_t sample_rate;
-    uint32_t datalength;
-    i2s_cb_func callback;
-    i2s_context_t *context;
-    bool share_clk;
-    shared_set_t shared_clk_set;
+    flexcomm_port_t flexcomm_bus; ///< Bus that I2S instance uses
+    bool is_transmit;             ///< True if the bus is a transmitter
+    bool is_master;               ///< True if bus is master
+    uint8_t active_channels;      ///< Active number of channels - must be in pairs between 2 and 8
+    uint32_t sample_rate;         ///< Frame sync clock rate in Hz
+    uint32_t datalength;          ///< Number of bits per channel
+    i2s_cb_func callback;         ///< I2S complete callback
+    i2s_context_t *context;       ///< I2S context
+    bool share_clk;               ///< True if the clock is shared with other FC buses
+    shared_set_t shared_clk_set;  ///< Set to value < FLEXCOMM_ND if intend to use a shared clock
 } i2s_init_t;
 
 /*******************************************************************************
  * Function Prototypes
  ******************************************************************************/
 
+/** Initialization function for an I2S bus
+ *
+ * @param config Configuration for I2S bus initialization
+*/
 void i2s_init(i2s_init_t config);
 
 #endif

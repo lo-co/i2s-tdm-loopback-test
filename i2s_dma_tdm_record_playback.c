@@ -21,8 +21,8 @@
  * Definitions
  ******************************************************************************/
 /* Definitions for switch usage... */
-#define APP_GPIO_INTA_IRQHandler GPIO_INTA_DriverIRQHandler
-#define APP_SW_IRQ               GPIO_INTA_IRQn
+// #define APP_GPIO_INTA_IRQHandler GPIO_INTA_DriverIRQHandler
+// #define APP_SW_IRQ               GPIO_INTA_IRQn
 
 /*******************************************************************************
  * Variables
@@ -80,6 +80,7 @@ static event_t current_events = {.idx = 0, .evt_times = {0}};
 /*******************************************************************************
  * Code
  ******************************************************************************/
+/** Switch 2 callback for interrupt*/
 void sw2_int_cb(void *usrData)
 {
     (void)usrData;
@@ -90,34 +91,6 @@ void sw2_int_cb(void *usrData)
     }
     g_interruptEnabled = !g_interruptEnabled;
 }
-// void APP_GPIO_INTA_IRQHandler(void)
-// {
-//     // serdes_update_evt_times(RCV_INTERRUPT, &current_events);
-//     /* clear the interrupt status */
-//     GPIO_PinClearInterruptFlag(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
-//     /* Change state of switch. */
-//     // if (g_interruptEnabled)
-//     // {
-//     //     memset(rcv5_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-//     // }
-//     // g_interruptEnabled = !g_interruptEnabled;
-//     sw2_int_cb(NULL);
-
-//     SDK_ISR_EXIT_BARRIER;
-// }
-
-
-// static void enable_sw_interrupt()
-// {
-//     gpio_interrupt_config_t config = {kGPIO_PinIntEnableEdge, kGPIO_PinIntEnableLowOrFall};
-
-//     EnableIRQ(APP_SW_IRQ);
-
-//     /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
-//     // Ugh...config tool does a half ass job of this
-//     GPIO_SetPinInterruptConfig(SW2_GPIO, SW2_PORT, SW2_PIN, &config);
-//     GPIO_PinEnableInterrupt(SW2_GPIO, SW2_PORT, SW2_PIN, 0);
-// }
 
 static void rcv_i2s_data(i2s_transfer_t *rcv_transfer)
 {
@@ -230,8 +203,8 @@ int main(void)
     // Enable GPIO Ports...not certain why this not done in the pin mux functionality
     // Don't understand - all this does is enable the clocks for these ports but this
     // should already be done
-    GPIO_PortInit(GPIO, 0U);
-    GPIO_PortInit(GPIO, 1U);
+    // GPIO_PortInit(GPIO, 0U);
+    // GPIO_PortInit(GPIO, 1U);
 
     // enable_sw_interrupt();
 

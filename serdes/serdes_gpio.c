@@ -17,6 +17,10 @@
 /*******************************************************************************
  * Function Prototypes
  ******************************************************************************/
+/** Configure the switch 2 interrupt.
+ *
+ * The ISR is overriden.  It is GPIO_INTA_DriverIRQHandler.
+*/
 static void serdes_gpio_cfg_sw2_int();
 static void serdes_gpio_pin_init();
 
@@ -45,20 +49,18 @@ static void serdes_gpio_cfg_sw2_int()
     EnableIRQ(GPIO_INTA_IRQn);
 
     /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
-    // Ugh...config tool does a half ass job of this
     GPIO_SetPinInterruptConfig(GPIO, SW2_PORT, SW2_PIN, &config);
     GPIO_PinEnableInterrupt(GPIO, SW2_PORT, SW2_PIN, 0);
 }
 
 static void serdes_gpio_pin_init()
 {
-    /* Enables the clock for the GPIO0 module */
-    // CLOCK_EnableClock(kCLOCK_HsGpio0);
-
-    gpio_pin_config_t SW2_config = {
+    const gpio_pin_config_t SW2_config = {
         .pinDirection = kGPIO_DigitalInput,
         .outputLogic = 0U
     };
+
+    GPIO_PortInit(GPIO, SW2_PORT);
 
     /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
     /* This call will enable the port clock (in this case kCLOCK_HsGpio0 for port 0),
@@ -91,7 +93,7 @@ static void serdes_gpio_pin_init()
 
 }
 
-void SW2_GPIO_INTA_IRQHandler(void)
+void GPIO_INTA_DriverIRQHandler(void)
 {
     /* clear the interrupt status */
     GPIO_PinClearInterruptFlag(GPIO, SW2_PORT, SW2_PIN, 0);
