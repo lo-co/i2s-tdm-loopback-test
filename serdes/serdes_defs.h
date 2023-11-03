@@ -12,10 +12,16 @@
 #define SAMPLE_RATE_HZ (48000)
 #define SAMPLE_SIZE_MS (8U)
 #define SAMPLE_PER_MS (48)
-#define BYTES_PER_SAMPLE (4)
+#define BYTES_PER_SAMPLE (4U)
 #define NUM_CHANNELS (8)
 #define BUFFER_SIZE   (SAMPLE_SIZE_MS * SAMPLE_PER_MS * BYTES_PER_SAMPLE * NUM_CHANNELS)
 #define BUFFER_NUMBER (8U)
+
+// This assumes two channes
+#define DATA_BUFFER_SIZE    (2*4U)
+#define NUMBER_DATA_BUFFERS (10U)
+
+#define NUMBER_CODEC_BUFFERS (2U)
 
 /* Constants for data being pushed around */
 #define CONST_DATA (0xdeadbeef)

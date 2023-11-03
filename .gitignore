@@ -5,3 +5,5 @@ armgcc/
 *.bak
 
 *.code-workspace
+
+i2s_dma_tdm_record_playback.c

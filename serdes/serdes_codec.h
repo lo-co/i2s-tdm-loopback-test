@@ -17,4 +17,16 @@
 */
 void serdes_codec_init();
 
+/**
+ * @brief Start the I2S bus to receive data from the codec.
+ *
+ */
+void serdes_codec_src_start();
+
+/**
+ * @brief Stop I2S receive bus
+ *
+ */
+void serdes_codec_src_stop();
+
 #endif

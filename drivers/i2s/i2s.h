@@ -83,4 +83,11 @@ typedef struct i2s_init_s
 */
 void i2s_init(i2s_init_t config);
 
+/**
+ * @brief Stop all DMA transfers and disable the bus
+ *
+ * @param config Configuration structure for requested bus
+ */
+void i2s_stop(i2s_init_t config);
+
 #endif

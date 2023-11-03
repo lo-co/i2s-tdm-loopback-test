@@ -8,12 +8,12 @@
 #include "fsl_clock.h"
 #include "fsl_gpio.h"
 #include "fsl_iopctl.h"
+#include "i2s_defs.h"
 #include "../gpio/gpio_def.h"
 
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define I2S_DMA DMA0
 #define FLEXCOMM_CLOCK_SOURCE 24576000UL
 
 /*******************************************************************************
@@ -72,6 +72,19 @@ static void dma_init(i2s_init_t config);
  * @param config I2S configuration structure
 */
 static void clock_init(i2s_init_t config);
+
+/**
+ * @brief Retrieve the DMA Channel number for a particular bus
+ *
+ * DMA Channels are defined in Table 364; channel is determined by whether it
+ * is receive or transmit
+ *
+ * @param fc_port Flexcomm port number that I2S bus is on
+ * @param is_transmit boolean indicating whether the port is configured for
+ *                    transmitting or not
+ * @return Channel number
+ */
+static uint8_t get_dma_channel(flexcomm_port_t fc_port, bool is_transmit);
 
 /*******************************************************************************
  * Variables
@@ -197,6 +210,21 @@ void i2s_init(i2s_init_t config)
     dma_init(config);
 }
 
+void i2s_stop(i2s_init_t config)
+{
+    /* This one call will do everything we need:
+     * * Disable DMA interrupts
+     * * Abort DMA transfers
+     * * Disable DMA
+     * * Disable I2S
+     *
+     * So this function is essentially a wrapper so that the modules above
+     * do not have to call the fsl_i2s_dma module.
+    */
+    I2S_TransferAbortDMA(config.context->base, &config.context->i2s_dma_handle);
+}
+
+
 // Documented in .h
 static void i2s_pin_init(i2s_init_t config)
 {
@@ -263,9 +291,7 @@ static void dma_init(i2s_init_t config)
         base_dma_initialized = true;
     }
 
-    // DMA Channels are defined in Table 364;
-    // channel is determined by whether it is receive or transmit
-    uint32_t dma_channel = config.is_transmit ? 1 + 2 * config.flexcomm_bus : 2* config.flexcomm_bus;
+    uint32_t dma_channel = (uint32_t)get_dma_channel(config.flexcomm_bus, config.is_transmit);
 
     DMA_EnableChannel(I2S_DMA, dma_channel);
     DMA_SetChannelPriority(I2S_DMA, dma_channel, kDMA_ChannelPriority3);
@@ -332,4 +358,9 @@ static void clock_init(i2s_init_t config)
     // Set MCLK direction as output; this is defined in section 4.5.6.1
     // This can be set multiple times no big deal...
     SYSCTL1->MCLKPINDIR = SYSCTL1_MCLKPINDIR_MCLKPINDIR_MASK;
+}
+
+static uint8_t get_dma_channel(flexcomm_port_t fc_port, bool is_transmit)
+{
+    return is_transmit ? 1 + 2 * fc_port : 2 * fc_port;
 }

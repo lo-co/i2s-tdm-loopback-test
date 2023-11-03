@@ -2,9 +2,12 @@
 #include "fsl_codec_adapter.h"
 #include "fsl_cs42448.h"
 #include "fsl_iopctl.h"
+#include "fsl_i2s.h"
 #include "fsl_debug_console.h"
 #include "../drivers/i2s/i2s.h"
 #include "../drivers/gpio/gpio_def.h"
+#include "serdes_defs.h"
+#include "serdes_memory.h"
 
 /*******************************************************************************
  * Definitions
@@ -140,23 +143,33 @@ static void serdes_codec_pin_init()
     IOPCTL_PinMuxSet(IOPCTL, 1U, 10U, mclk_pin_cfg);
 }
 
+// Documented in .h
 static void serdes_codec_i2s_init()
 {
-
+    i2s_init(rx_i2s_cfg);
 }
 
+// Documented in .h
+void serdes_codec_src_start()
+{
+    i2s_transfer_t txf = {.data = serdes_get_next_audio_src_buffer(), .dataSize = BUFFER_SIZE};
+    I2S_RxTransferReceiveDMA(rx_i2s_cfg.context->base, &rx_i2s_cfg.context->i2s_dma_handle, txf);
+}
+
+void serdes_codec_src_stop()
+{
+    i2s_stop(rx_i2s_cfg);
+}
+
+// Documented above
 void codec_rx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
-    // emptyBlock--;
-    ;
-
-    // if (g_interruptEnabled && emptyFC4Buffer >0){
-    //     emptyFC4Buffer--;
-    // }
+    i2s_transfer_t txf = {.data = serdes_get_next_audio_src_buffer(), .dataSize = BUFFER_SIZE};
+    I2S_RxTransferReceiveDMA(rx_i2s_cfg.context->base, &rx_i2s_cfg.context->i2s_dma_handle, txf);
 }
 
+// Documented above
 void codec_tx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
-    // emptyBlock++;
     ;
 }

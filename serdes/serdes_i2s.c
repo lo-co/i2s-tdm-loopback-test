@@ -1,6 +1,8 @@
 #include "serdes_i2s.h"
 #include "fsl_i2c.h"
 #include "serdes_defs.h"
+#include "serdes_memory.h"
+#include "../drivers/i2s/i2s_defs.h"
 
 /*******************************************************************************
  * Definitions
@@ -24,11 +26,12 @@ void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
  * Variables
  ******************************************************************************/
 
-uint8_t tx_idx = 0, rx_idx = 0;
+static uint8_t tx_idx = 0, rx_idx = 0;
 
-/* Memory set aside for receive and transmit transactions */
-AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rx_buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
-AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t tx_buffer[BUFFER_NUMBER * BUFFER_SIZE], 4);
+/**
+ * @brief Variable indicating whether the I2S (tx and rcv) is active
+ */
+static bool bus_is_running = false;
 
 // Bridge I2S
 i2s_context_t tx_i2s_context;
@@ -48,9 +51,9 @@ i2s_init_t rx_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
  * Function Definitions
  ******************************************************************************/
 
-void serdes_i2s_init(bool is_slave)
+void serdes_i2s_init(bool is_master)
 {
-    if (is_slave)
+    if (!is_master)
     {
         tx_config.flexcomm_bus = FLEXCOMM_5;
         tx_config.is_master = false;
@@ -65,21 +68,40 @@ void serdes_i2s_init(bool is_slave)
     }
 
     // Make sure the buffers contain nothing...
-    memset(rx_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-    memset(tx_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
+    serdes_memory_init();
 
     i2s_init(tx_config);
     i2s_init(rx_config);
 }
 
+// Documented in .h
 void serdes_i2s_start()
 {
+    bus_is_running = true;
+    // In the future, this should send 0's maybe?
+    i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
+    I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
+    txf.data = serdes_get_next_rx_buffer();
+    I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
+}
 
+// Documented in .h
+void serdes_i2s_stop()
+{
+    i2s_stop(tx_config);
+    i2s_stop(rx_config);
+    bus_is_running = false;
+}
+
+// Documented in .h
+bool serdes_i2s_is_running()
+{
+    return bus_is_running;
 }
 
 void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
-    i2s_transfer_t txf = {.data = tx_buffer + tx_idx++*BUFFER_SIZE, .dataSize = BUFFER_SIZE};
+    i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
     I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
 
     // Make sure the buffer is in bounds
@@ -89,8 +111,10 @@ void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 
 void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
-    i2s_transfer_t txf = {.data = rx_buffer + rx_idx++*BUFFER_SIZE, .dataSize = BUFFER_SIZE};
+    i2s_transfer_t txf = {.data = serdes_get_next_rx_buffer(), .dataSize = BUFFER_SIZE};
     I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
+
+    // Here we will check to see if there is data in one of the info channels
 
     // Make sure the buffer is in bounds
     rx_idx = rx_idx >= BUFFER_NUMBER ? 0 : rx_idx;

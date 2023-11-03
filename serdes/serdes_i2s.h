@@ -27,9 +27,31 @@
  * clock lines using SHARED_SET_1. If the role is slave, then both buses will be
  * configured as clock slaves.
  *
- * @param is_slave Boolean defining the role of the board.  Roles are master (false)
- *                 and slave (true)
+ * @param is_master Boolean defining the role of the board.  Roles are master (true)
+ *                 and slave (false)
 */
-void serdes_i2s_init(bool is_slave);
+void serdes_i2s_init(bool is_master);
+
+/**
+ * @brief Stop all DMA transfers on the SERDES bridge and disable I2S
+ *
+ */
+void serdes_i2s_stop();
+
+/**
+ * @brief Start receive and transmit transactions.
+ *
+ * If the bus is master, it will start the clocks.
+ *
+ */
+void serdes_i2s_start();
+
+/**
+ * @brief Boolean determining if the I2S bus is running
+ *
+ * @return true Bus is running
+ * @return false Bus is not running
+ */
+bool serdes_i2s_is_running();
 
 #endif
