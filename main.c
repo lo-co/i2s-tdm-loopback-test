@@ -6,6 +6,12 @@
  * * Switch interrupt functional (11/2)
  * * I2S callable and firing (11/2)
  * * I2S data received - validated using 1,2,3,4 for first 4 buffers (11/2)
+ *
+ *
+ * TODO:
+ * * add LED for system
+ * * add amp for system
+ *
  * @author Matt Richardson
 */
 
@@ -27,14 +33,11 @@
  * Prototypes
  ******************************************************************************/
 
-void sw2_int_cb(void *usrData);
+uint8_t sw2_int_cb(void *usrData);
 
 /*******************************************************************************
  * Variables
  ******************************************************************************/
-static serdes_gpio_cfg_t gpio_cfg = {.sw2_cb = sw2_int_cb};
-static event_t current_events = {.idx = 0, .evt_times = {0}};
-static bool g_interruptEnabled = false;
 
 /*******************************************************************************
  * Code
@@ -49,7 +52,8 @@ int main(void)
     BOARD_InitBootPins();
     BOARD_InitDebugConsole();
     serdes_event_init();
-    serdes_gpio_init(gpio_cfg);
+    serdes_register_handler(SWITCH_2_PRESSED, sw2_int_cb);
+    serdes_gpio_init();
     serdes_i2s_init(BOARD_IS_MASTER);
     CLOCK_EnableClock(kCLOCK_InputMux);
     PRINTF("SERDES main application starting...\r\n");
@@ -62,35 +66,30 @@ int main(void)
         // initialize amps and mics
     }
 
-
     // Kick off main loop...
-    // TODO: replace with event handler to handle incoming messages from
-    // peripherals and system
     while (true)
     {
-        if (g_interruptEnabled)
-        {
-            PRINTF("SW2 interrupt fired...\r\n");
-            if (!serdes_i2s_is_running())
-            {
-                PRINTF("Starting I2S bus...\r\n");
-                serdes_i2s_start();
-
-            }
-            else
-            {
-                serdes_i2s_stop();
-                PRINTF("Stopping I2S transmission now..\r\n");
-            }
-            g_interruptEnabled = false;
-        }
+        // Call the event dispatcher and handle any incoming events...
+        serdes_dispatch_event();
     }
 }
 
-void sw2_int_cb(void *usrData)
+uint8_t sw2_int_cb(void *usrData)
 {
+    led_state_t led_state = {.color = GREEN, true};
     (void)usrData;
-    serdes_update_evt_times(RCV_INTERRUPT, &current_events);
-    g_interruptEnabled = !g_interruptEnabled;
+    if (!serdes_i2s_is_running())
+    {
+        PRINTF("Starting I2S bus...\r\n");
+        serdes_i2s_start();
+    }
+    else
+    {
+        led_state.set_on = false;
+        serdes_i2s_stop();
+        PRINTF("Stopping I2S transmission now..\r\n");
+    }
+    serdes_push_event(SET_LED_STATE, &led_state);
+    return 0;
 }
 

@@ -8,6 +8,7 @@
 #include "../drivers/gpio/gpio_def.h"
 #include "serdes_defs.h"
 #include "serdes_memory.h"
+#include "serdes_event.h"
 
 /*******************************************************************************
  * Definitions
@@ -37,8 +38,18 @@ static void serdes_codec_pin_init();
 */
 static void serdes_codec_i2s_init();
 
-void codec_rx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
-void codec_tx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
+static void codec_rx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
+static void codec_tx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
+
+/**
+ * @brief Event handler for receiving audio data
+ *
+ * This function will call into memory to transfer the audio data into the proper transmit buffer.
+ *
+ * @param usrData This is the pointer to the memory buffer to transfer into the transmit buffer
+ * @return 0 on success
+ */
+static uint8_t codec_src_data_available_cb(void *usrData);
 
 /*******************************************************************************
  * Variables
@@ -80,6 +91,7 @@ void serdes_codec_init()
 {
     serdes_codec_pin_init();
     serdes_codec_i2s_init();
+    serdes_register_handler(AUDIO_SRC_DATA_AVAILABLE, codec_src_data_available_cb);
 
     cs42448Config.i2cConfig.codecI2CSourceClock = CLOCK_GetFlexCommClkFreq(2);
     cs42448Config.format.mclk_HZ                = CLOCK_GetMclkClkFreq();
@@ -154,6 +166,8 @@ void serdes_codec_src_start()
 {
     i2s_transfer_t txf = {.data = serdes_get_next_audio_src_buffer(), .dataSize = BUFFER_SIZE};
     I2S_RxTransferReceiveDMA(rx_i2s_cfg.context->base, &rx_i2s_cfg.context->i2s_dma_handle, txf);
+
+    serdes_push_event(AUDIO_SRC_DATA_AVAILABLE, txf.data);
 }
 
 void serdes_codec_src_stop()
@@ -162,14 +176,24 @@ void serdes_codec_src_stop()
 }
 
 // Documented above
-void codec_rx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
+static void codec_rx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     i2s_transfer_t txf = {.data = serdes_get_next_audio_src_buffer(), .dataSize = BUFFER_SIZE};
     I2S_RxTransferReceiveDMA(rx_i2s_cfg.context->base, &rx_i2s_cfg.context->i2s_dma_handle, txf);
+
+    serdes_push_event(AUDIO_SRC_DATA_AVAILABLE, txf.data);
 }
 
 // Documented above
-void codec_tx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
+static void codec_tx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     ;
+}
+
+// Documented above
+static uint8_t codec_src_data_available_cb(void *usrData)
+{
+    serdes_mem_insert_audio_data((uint8_t *)usrData, BUFFER_SIZE);
+    // Transfer audio data to transmit buffer
+    return 0;
 }

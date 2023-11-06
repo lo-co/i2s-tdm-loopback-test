@@ -25,4 +25,31 @@
 #define SW2_PORT    0U
 #define SW2_PIN     10U
 
+typedef enum led_color_e
+{
+    GREEN,
+    BLUE,
+    RED,
+    MAX_LEDS
+} led_color_t;
+
+typedef struct pin_def_s
+{
+    uint8_t port;
+    uint8_t pin;
+} pin_def_t;
+
+const pin_def_t led_pin_defs[3] =
+    {{.port = 0, .pin = 14}, // GREEN
+     {.port = 0, .pin = 26}, // BLUE
+     {.port = 0, .pin = 31}  // RED
+    };
+
+const pin_def_t switch_pin_defs[2] =
+    {{.port = 1, .pin = 10},
+     {.port = 0, .pin = 10}
+    };
+
+// TODO: Add functionality to initialize ports and pins 1x so we don't step on initialized ports
+
 #endif

@@ -6,22 +6,24 @@
 #ifndef _SERDES_GPIO_H
 #define _SERDES_GPIO_H
 
+#include "../drivers/gpio/gpio_def.h"
+#include "serdes_event.h"
+
 /*******************************************************************************
  * Type Definitions
  ******************************************************************************/
-
-typedef void(*interrupt_cb)(void *usrData);
-
-typedef struct serdes_gpio_cfg_s
+typedef struct led_state_s
 {
-    interrupt_cb sw2_cb;
-
-} serdes_gpio_cfg_t;
+    led_color_t color;
+    bool set_on;
+} led_state_t;
 
 /*******************************************************************************
  * Function Prototypes
  ******************************************************************************/
 
-void serdes_gpio_init(serdes_gpio_cfg_t cfg_data);
+void serdes_gpio_init();
+
+void serdes_set_led_state (led_color_t led, bool is_on);
 
 #endif

@@ -1,6 +1,7 @@
 #include "serdes_i2s.h"
 #include "fsl_i2c.h"
 #include "serdes_defs.h"
+#include "serdes_event.h"
 #include "serdes_memory.h"
 #include "../drivers/i2s/i2s_defs.h"
 
@@ -16,11 +17,35 @@
 /*******************************************************************************
  * Function Prototypes
  ******************************************************************************/
-/** Transmit data if available in the buffer */
-void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
 
-/** @brief Receive incoming data and make sure it gets where it needs to */
-void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
+/**
+ * @brief Callback for an I2S DMA transmit transfer.
+ *
+ * This call will line up the next transfer, reading the next bit of memory from
+ * the audio data buffer.
+ *
+ */
+static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
+
+/**
+ * @brief Callback for receiving I2S data.
+ *
+ * This call will flag an audio received event.  The dispatcher for that event
+ * will then parse the incoming stream for any event data
+ *
+ */
+static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
+
+/**
+ * @brief Event handler for data received on the RX line.
+ *
+ * This will provide the buffer for parsing for data that will require a response
+ * from the system.
+ *
+ * @param usrData This will be the input buffer from the receive line
+ * @return 0 on success
+ */
+static uint8_t i2s_rx_event_cb(void *usrData);
 
 /*******************************************************************************
  * Variables
@@ -51,6 +76,7 @@ i2s_init_t rx_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
  * Function Definitions
  ******************************************************************************/
 
+// Documented in .h
 void serdes_i2s_init(bool is_master)
 {
     if (!is_master)
@@ -72,6 +98,7 @@ void serdes_i2s_init(bool is_master)
 
     i2s_init(tx_config);
     i2s_init(rx_config);
+    serdes_register_handler(DATA_RECEIVED, i2s_rx_event_cb);
 }
 
 // Documented in .h
@@ -99,23 +126,32 @@ bool serdes_i2s_is_running()
     return bus_is_running;
 }
 
-void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
+// Documented above
+static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
     i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
     I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
 
     // Make sure the buffer is in bounds
     tx_idx = tx_idx >= BUFFER_NUMBER ? 0 : tx_idx;
-
 }
 
-void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
+// Documented above
+static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
     i2s_transfer_t txf = {.data = serdes_get_next_rx_buffer(), .dataSize = BUFFER_SIZE};
     I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
 
-    // Here we will check to see if there is data in one of the info channels
+    serdes_push_event(DATA_RECEIVED, txf.data);
 
     // Make sure the buffer is in bounds
     rx_idx = rx_idx >= BUFFER_NUMBER ? 0 : rx_idx;
+}
+
+// Documented above
+uint8_t i2s_rx_event_cb(void *usrData)
+{
+    // TODO: is there any reason that data might show up farther down the line than the first packet?
+    // Parse events here
+    return 0;
 }
