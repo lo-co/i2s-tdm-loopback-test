@@ -9,7 +9,7 @@
 #ifndef _SERDES_DEFS_H
 #define _SERDES_DEFS_H
 
-#define SAMPLE_RATE_HZ (48000)
+#define SAMPLE_RATE_HZ (48000U)
 #define SAMPLE_SIZE_MS (8U)
 #define SAMPLE_PER_MS (48)
 #define BYTES_PER_SAMPLE (4U)
@@ -17,8 +17,9 @@
 #define BUFFER_SIZE   (SAMPLE_SIZE_MS * SAMPLE_PER_MS * BYTES_PER_SAMPLE * NUM_CHANNELS)
 #define BUFFER_NUMBER (8U)
 
-// This assumes two channes
-#define DATA_BUFFER_SIZE    (2*4U)
+// Each data entry is 64-bits or two channels.  Communication that extends beyond this
+// will bleed into other channels
+#define DATA_BUFFER_SIZE    (8U)
 #define NUMBER_DATA_BUFFERS (10U)
 
 #define NUMBER_CODEC_BUFFERS (2U)

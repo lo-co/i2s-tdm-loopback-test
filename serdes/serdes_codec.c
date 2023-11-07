@@ -1,3 +1,21 @@
+/**
+ * @file serdes_codec.c
+ *
+ * This module defines the codec functionality.  The SERDES POC uses only the
+ * receive line of the CODEC as the input serves as the audio source similar
+ * to how bluetooth or a mic might serve as an audio source on other products.
+ *
+ * The CODEC receiver will start when the button to start transmission is
+ * pressed and stopped when the button is pressed again.
+ *
+ * @author Matt Ricahrdson (mattrichardson@meta.com)
+ * @brief
+ * @version 0.1
+ * @date 2023-11-07
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
 #include "fsl_codec_common.h"
 #include "fsl_codec_adapter.h"
 #include "fsl_cs42448.h"
@@ -13,12 +31,13 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-/*******************************************************************************
- * Type Definitions
- ******************************************************************************/
 
 #define CODEC_I2C_BASEADDR         I2C2
 #define CODEC_I2C_INSTANCE         2U
+
+/*******************************************************************************
+ * Type Definitions
+ ******************************************************************************/
 
 /*******************************************************************************
  * Function Prototypes
@@ -38,7 +57,24 @@ static void serdes_codec_pin_init();
 */
 static void serdes_codec_i2s_init();
 
+/**
+ * @brief Callback for I2S receive
+ *
+ * @param base
+ * @param handle
+ * @param completionStatus
+ * @param userData
+ */
 static void codec_rx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
+
+/**
+ * @brief Callback for codec transmit
+ *
+ * @param base
+ * @param handle
+ * @param completionStatus
+ * @param userData
+ */
 static void codec_tx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData);
 
 /**
@@ -55,13 +91,16 @@ static uint8_t codec_src_data_available_cb(void *usrData);
  * Variables
  ******************************************************************************/
 
+// TDM data will be received MSB first on second rising edge.  Every frame is 32 bits wide
+// and is left justified with in the slots.  ADC/DAC_SCLK must operate at 256Fs.
+// ADC/DAC_LRCLK will identify the start of a new frame and is equal to Fs.
 cs42448_config_t cs42448Config = {
     .DACMode      = kCS42448_ModeSlave,
     .ADCMode      = kCS42448_ModeSlave,
     .reset        = NULL,
     .master       = false,
     .i2cConfig    = {.codecI2CInstance = CODEC_I2C_INSTANCE},
-    .format       = {.sampleRate = 48000U, .bitWidth = 24U},
+    .format       = {.sampleRate = SAMPLE_RATE_HZ, .bitWidth = 24U},
     .bus          = kCS42448_BusTDM,
     .slaveAddress = CS42448_I2C_ADDR,
 };
@@ -76,7 +115,8 @@ static i2s_init_t rx_i2s_cfg = {.flexcomm_bus = FLEXCOMM_1, .is_transmit = false
                         .datalength = 32, .callback = codec_rx_cb, .context = &rx_i2s_context,
                         .share_clk = false, .shared_clk_set = NO_SHARE};
 
-// Transmitter for audio to codec
+// Transmitter for audio to codec - this is not needed in the SERDES POC but is here for
+// completion
 static i2s_context_t tx_i2s_context;
 static i2s_init_t tx_i2s_cfg = {.flexcomm_bus = FLEXCOMM_3, .is_transmit = true,
                         .is_master = true, .active_channels = 8, .sample_rate = 48000,
@@ -87,6 +127,7 @@ static i2s_init_t tx_i2s_cfg = {.flexcomm_bus = FLEXCOMM_3, .is_transmit = true,
  * Function Definitions
  ******************************************************************************/
 
+// Documented in .h
 void serdes_codec_init()
 {
     serdes_codec_pin_init();
@@ -102,13 +143,10 @@ void serdes_codec_init()
         assert(false);
     }
 
-    // Set the volume to the max on channels 0 and 1
-    CODEC_SetVolume(&codecHandle, 0, 100);
-    CODEC_SetVolume(&codecHandle, 1, 100);
-
     PRINTF("\r\nCodec Init Done.\r\n");
 }
 
+// Documented above
 static void serdes_codec_pin_init()
 {
     const uint32_t pin_cfg = (IOPCTL_PIO_FUNC1 |
@@ -170,6 +208,7 @@ void serdes_codec_src_start()
     serdes_push_event(AUDIO_SRC_DATA_AVAILABLE, txf.data);
 }
 
+// Documented in .h
 void serdes_codec_src_stop()
 {
     i2s_stop(rx_i2s_cfg);
@@ -184,7 +223,7 @@ static void codec_rx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t compl
     serdes_push_event(AUDIO_SRC_DATA_AVAILABLE, txf.data);
 }
 
-// Documented above
+// Documented above - NOT IMPLEMENTED
 static void codec_tx_cb(I2S_Type *base, i2s_dma_handle_t *handle, status_t completionStatus, void *userData)
 {
     ;

@@ -21,10 +21,6 @@
 #define IOPCTL_PIO_PUPD_EN 0x10u          /*!<@brief Enable pull-up / pull-down function */
 #define IOPCTL_PIO_PULLUP_EN 0x20u        /*!<@brief Enable pull-up function */
 
-// Pin definitions
-#define SW2_PORT    0U
-#define SW2_PIN     10U
-
 typedef enum led_color_e
 {
     GREEN,
@@ -32,6 +28,12 @@ typedef enum led_color_e
     RED,
     MAX_LEDS
 } led_color_t;
+
+typedef enum switch_e {
+    SWITCH_1 = 0,
+    SWITCH_2,
+    MAX_SWITCHES
+} switch_t;
 
 typedef struct pin_def_s
 {
@@ -46,8 +48,8 @@ const pin_def_t led_pin_defs[3] =
     };
 
 const pin_def_t switch_pin_defs[2] =
-    {{.port = 1, .pin = 10},
-     {.port = 0, .pin = 10}
+    {{.port = 1, .pin = 10}, // SWITCH_1
+     {.port = 0, .pin = 10}  // SWITCH_2
     };
 
 // TODO: Add functionality to initialize ports and pins 1x so we don't step on initialized ports

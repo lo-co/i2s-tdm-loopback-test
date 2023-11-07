@@ -21,10 +21,20 @@
  * The ISR is overriden.  It is GPIO_INTA_DriverIRQHandler.
 */
 static void serdes_gpio_cfg_sw2_int();
+
+/**
+ * @brief Call to handle pin muxing for the EVK
+ *
+ */
 static void serdes_gpio_pin_init();
 
+/**
+ * @brief Handler to be registered with the event dispatcher for an LED event
+ *
+ * @param userData Type is led_state_t - this will be passed to the event to change the LED
+ * @return 0 if Success
+ */
 static uint8_t serdes_handle_led_event(void *userData);
-
 
 /*******************************************************************************
  * Variables
@@ -50,27 +60,22 @@ static void serdes_gpio_cfg_sw2_int()
     EnableIRQ(GPIO_INTA_IRQn);
 
     /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
-    GPIO_SetPinInterruptConfig(GPIO, SW2_PORT, SW2_PIN, &config);
-    GPIO_PinEnableInterrupt(GPIO, SW2_PORT, SW2_PIN, 0);
+    GPIO_SetPinInterruptConfig(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, &config);
+    GPIO_PinEnableInterrupt(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, 0);
 }
 
 static void serdes_gpio_pin_init()
 {
-    const gpio_pin_config_t SW2_config = {
+    // initialize the port for the switch
+    GPIO_PortInit(GPIO, 0U);
+
+    const gpio_pin_config_t switch_pin_cfg = {
         .pinDirection = kGPIO_DigitalInput,
         .outputLogic = 0U
     };
 
-    // initialize the port for the switch
-    GPIO_PortInit(GPIO, 0U);
-
-    /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
-    /* This call will enable the port clock (in this case kCLOCK_HsGpio0 for port 0),
-     * clear the peripheral and set the direction. */
-    GPIO_PinInit(GPIO, SW2_PORT, SW2_PIN, &SW2_config);
-
     // Connect the pins
-    const uint32_t sw2_cfg = (/* Pin is configured as PIO0_10 */
+    const uint32_t switch_cfg = (/* Pin is configured as PIO0_10 */
                           IOPCTL_PIO_FUNC0 |
                           /* Disable pull-up / pull-down function */
                           IOPCTL_PIO_PUPD_DI |
@@ -88,7 +93,12 @@ static void serdes_gpio_pin_init()
                           IOPCTL_PIO_PSEDRAIN_DI |
                           /* Input function is not inverted */
                           IOPCTL_PIO_INV_DI);
-    IOPCTL_PinMuxSet(IOPCTL, SW2_PORT, SW2_PIN, sw2_cfg);
+    IOPCTL_PinMuxSet(IOPCTL, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, switch_cfg);
+    for (uint8_t idx = 0; idx < MAX_SWITCHES; idx++)
+    {
+        IOPCTL_PinMuxSet(IOPCTL, switch_pin_defs[idx].port, switch_pin_defs[idx].pin, switch_cfg);
+        GPIO_PinInit(GPIO, switch_pin_defs[idx].port, switch_pin_defs[idx].pin, &switch_pin_cfg);
+    }
 
     uint32_t led_cfg = (/* Pin is configured as PIO0_26 */
                         IOPCTL_PIO_FUNC0 |
@@ -119,15 +129,13 @@ static void serdes_gpio_pin_init()
         GPIO_PinInit(GPIO, led_pin_defs[idx].port, led_pin_defs[idx].pin, &led_config);
     }
 
-
     serdes_pins_initialized = true;
-
 }
 
 void GPIO_INTA_DriverIRQHandler(void)
 {
     /* clear the interrupt status */
-    GPIO_PinClearInterruptFlag(GPIO, SW2_PORT, SW2_PIN, 0);
+    GPIO_PinClearInterruptFlag(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, 0);
     serdes_push_event(SWITCH_2_PRESSED, NULL);
     SDK_ISR_EXIT_BARRIER;
 }
@@ -143,4 +151,3 @@ static uint8_t serdes_handle_led_event(void *userData)
     serdes_set_led_state(led_state.color, led_state.set_on);
     return 0;
 }
-

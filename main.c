@@ -19,6 +19,7 @@
 #include "board.h"
 #include "pin_mux.h"
 #include "fsl_debug_console.h"
+#include "serdes/serdes_codec.h"
 #include "serdes/serdes_defs.h"
 #include "serdes/serdes_event.h"
 #include "serdes/serdes_gpio.h"
@@ -38,6 +39,8 @@ uint8_t sw2_int_cb(void *usrData);
 /*******************************************************************************
  * Variables
  ******************************************************************************/
+
+static led_state_t led_state = {.color = GREEN, .set_on = true};
 
 /*******************************************************************************
  * Code
@@ -62,7 +65,8 @@ int main(void)
     if (BOARD_IS_MASTER)
     {
         PRINTF("Board is master\r\n");
-        // setup codec as an audio source
+        serdes_codec_init();
+
         // initialize amps and mics
     }
 
@@ -76,16 +80,24 @@ int main(void)
 
 uint8_t sw2_int_cb(void *usrData)
 {
-    led_state_t led_state = {.color = GREEN, true};
     (void)usrData;
     if (!serdes_i2s_is_running())
     {
+        led_state.set_on = true;
         PRINTF("Starting I2S bus...\r\n");
         serdes_i2s_start();
+        if (BOARD_IS_MASTER)
+        {
+            serdes_codec_src_start();
+        }
     }
     else
     {
         led_state.set_on = false;
+        if (BOARD_IS_MASTER)
+        {
+            serdes_codec_src_stop();
+        }
         serdes_i2s_stop();
         PRINTF("Stopping I2S transmission now..\r\n");
     }

@@ -37,7 +37,7 @@ AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t rx_audio_buffer[BUFFER_NUMBER * BUF
 /**
  * @brief Buffer used to queue data requests for transmission on the I2S bus
  */
-AT_NONCACHEABLE_SECTION_ALIGN(static uint8_t tx_data_buffer[NUMBER_DATA_BUFFERS * DATA_BUFFER_SIZE], 4);
+AT_NONCACHEABLE_SECTION_ALIGN(static uint64_t tx_data_buffer[NUMBER_DATA_BUFFERS], 4);
 
 /**
  * @brief Buffer used to store audio received from the codec
@@ -86,21 +86,35 @@ static uint8_t s_audio_src_read_position = 0;
  ******************************************************************************/
 void serdes_mem_insert_audio_data(uint8_t *buffer, uint32_t length)
 {
-    uint8_t current_data_idx = 1;
+    uint64_t *current_buffer = (uint64_t *)(tx_audio_buffer + s_audio_write_position * BUFFER_SIZE);
+    uint64_t *incomming_buffer = (uint64_t *)buffer;
 
-    uint8_t *current_buffer = tx_audio_buffer + s_audio_write_position * BUFFER_SIZE;
+    uint16_t buffer_len_64 = BUFFER_SIZE / 8;
 
-    memcpy(current_buffer, buffer, length);
-
-    while (s_data_read_position != s_data_write_position)
+    // Make sure all audio channels aside from 0 and 1 are muted and channels 6 and 7 contain
+    // data if available...
+    for (uint16_t sample_pair = 0; sample_pair < buffer_len_64; )
     {
-        memcpy((current_buffer + BYTES_PER_SAMPLE * 6 * current_data_idx),
-                &tx_data_buffer[s_data_read_position++ * DATA_BUFFER_SIZE],
-                DATA_BUFFER_SIZE);
+        current_buffer[sample_pair] = incomming_buffer[sample_pair];
+        sample_pair++;
+        // For the moment, fill channels 2-5 with zeros.  Not certain if anything else should go
+        // out on these...
+        current_buffer[sample_pair++] = 0;
+        current_buffer[sample_pair++] = 0;
 
-        if (s_data_read_position >= NUMBER_DATA_BUFFERS)
+        // If there is data available, place that data in channels 6-7
+        if (s_data_read_position != s_data_write_position)
         {
-            s_data_read_position = 0;
+            current_buffer[sample_pair++] = tx_data_buffer[s_data_read_position++];
+
+            if (s_data_read_position >= NUMBER_DATA_BUFFERS)
+            {
+                s_data_read_position = 0;
+            }
+        }
+        else // No data available - fill 6 and 7 with zeros
+        {
+            current_buffer[sample_pair++] = 0;
         }
     }
 
@@ -110,6 +124,8 @@ void serdes_mem_insert_audio_data(uint8_t *buffer, uint32_t length)
     }
 }
 
+// TODO: Fill out this function so data is inserted properly
+// Will have to define a protocol for this
 void serdes_mem_insert_data_data(data_pckt_t data)
 {
     if (++s_data_write_position >= NUMBER_DATA_BUFFERS)
@@ -159,7 +175,7 @@ uint8_t* serdes_get_next_audio_src_buffer()
 void serdes_memory_init()
 {
     memset(tx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-    fill_test_pattern();
+    // fill_test_pattern();
     memset(rx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
     memset(tx_data_buffer, 0, NUMBER_DATA_BUFFERS * DATA_BUFFER_SIZE);
     memset(audio_src_data, 0, NUMBER_CODEC_BUFFERS * BUFFER_SIZE);
