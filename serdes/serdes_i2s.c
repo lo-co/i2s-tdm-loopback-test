@@ -47,6 +47,9 @@ static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
  */
 static uint8_t i2s_rx_event_cb(void *usrData);
 
+uint8_t i2s_tx_data_request(void *usrData);
+
+
 /*******************************************************************************
  * Variables
  ******************************************************************************/
@@ -99,6 +102,13 @@ void serdes_i2s_init(bool is_master)
     i2s_init(tx_config);
     i2s_init(rx_config);
     serdes_register_handler(DATA_RECEIVED, i2s_rx_event_cb);
+    serdes_register_handler(DATA_AVAILABLE, i2s_tx_data_request);
+
+    // Just run...listening
+    if (!is_master)
+    {
+        serdes_i2s_start_slave();
+    }
 }
 
 // Documented in .h
@@ -110,6 +120,14 @@ void serdes_i2s_start()
     I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
     txf.data = serdes_get_next_rx_buffer();
     I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
+}
+
+void serdes_i2s_start_slave()
+{
+    bus_is_running = true;
+    i2s_transfer_t txf = {.data = serdes_get_next_rx_buffer(), .dataSize = BUFFER_SIZE};
+    I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
+    // serdes_push_event(DATA_RECEIVED, txf.data);
 }
 
 // Documented in .h
@@ -129,11 +147,14 @@ bool serdes_i2s_is_running()
 // Documented above
 static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
-    i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
-    I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
+    if (serdes_memory_more_audio_data())
+    {
+        i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
+        I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
 
-    // Make sure the buffer is in bounds
-    tx_idx = tx_idx >= BUFFER_NUMBER ? 0 : tx_idx;
+        // Make sure the buffer is in bounds
+        tx_idx = tx_idx >= BUFFER_NUMBER ? 0 : tx_idx;
+    }
 }
 
 // Documented above
@@ -155,3 +176,77 @@ uint8_t i2s_rx_event_cb(void *usrData)
     // Parse events here
     return 0;
 }
+
+uint8_t i2s_tx_data_request(void *usrData)
+{
+    i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
+    status_t status = I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
+
+    if (!status)
+    {
+        ;
+    }
+    return 0;
+}
+
+uint32_t serdes_i2s_get_fifo_status(i2s_bus_t i2s_bus)
+{
+    if (i2s_bus == TX)
+    {
+        return tx_config.context->base->FIFOSTAT;
+    }
+    else
+    {
+        return rx_config.context->base->FIFOSTAT;
+    }
+}
+
+uint32_t serdes_i2s_get_fifo_config(i2s_bus_t i2s_bus)
+{
+    if (i2s_bus == TX)
+    {
+        return tx_config.context->base->FIFOCFG;
+    }
+    else
+    {
+        return rx_config.context->base->FIFOCFG;
+    }
+}
+
+uint32_t serdes_i2s_get_cfg1(i2s_bus_t i2s_bus)
+{
+    if (i2s_bus == TX)
+    {
+        return tx_config.context->base->CFG1;
+    }
+    else
+    {
+        return rx_config.context->base->CFG1;
+    }
+}
+
+uint32_t serdes_i2s_get_cfg2(i2s_bus_t i2s_bus)
+{
+    if (i2s_bus == TX)
+    {
+        return tx_config.context->base->CFG2;
+    }
+    else
+    {
+        return rx_config.context->base->CFG2;
+    }
+}
+
+uint32_t serdes_i2s_get_stat(i2s_bus_t i2s_bus)
+{
+    if (i2s_bus == TX)
+    {
+        return tx_config.context->base->STAT;
+    }
+    else
+    {
+        return rx_config.context->base->STAT;
+    }
+}
+
+

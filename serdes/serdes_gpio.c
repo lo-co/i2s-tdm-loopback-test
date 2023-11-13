@@ -1,7 +1,11 @@
 #include "fsl_clock.h"
 #include "fsl_gpio.h"
 #include "fsl_iopctl.h"
+#include "fsl_inputmux.h"
+#include "fsl_pint.h"
+#include "fsl_power.h"
 
+#include "board.h"
 #include "serdes_gpio.h"
 
 /*******************************************************************************
@@ -36,6 +40,14 @@ static void serdes_gpio_pin_init();
  */
 static uint8_t serdes_handle_led_event(void *userData);
 
+/**
+ * @brief Configure switch 1 for providing an interrupt while asleep
+ *
+ */
+static void serdes_configure_pin_interrupt();
+
+static void serdes_pint_wakeup_cb(pint_pin_int_t pintr, uint32_t pmatch_status);
+
 /*******************************************************************************
  * Variables
  ******************************************************************************/
@@ -49,6 +61,7 @@ void serdes_gpio_init()
     // Maintain a copy of the configuration structure
     serdes_gpio_pin_init();
     serdes_gpio_cfg_sw2_int();
+    serdes_configure_pin_interrupt();
     serdes_register_handler(SET_LED_STATE, serdes_handle_led_event);
 }
 
@@ -58,16 +71,21 @@ static void serdes_gpio_cfg_sw2_int()
 
     // Enable GPIO interrupt A
     EnableIRQ(GPIO_INTA_IRQn);
+    // EnableIRQ(GPIO_INTB_IRQn);
 
     /* Initialize GPIO functionality on pin PIO0_10 (pin J3)  */
     GPIO_SetPinInterruptConfig(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, &config);
-    GPIO_PinEnableInterrupt(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, 0);
+    GPIO_PinEnableInterrupt(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, kGPIO_InterruptA);
+
+    // GPIO_SetPinInterruptConfig(GPIO, switch_pin_defs[SWITCH_1].port, switch_pin_defs[SWITCH_1].pin, &config);
+    // GPIO_PinEnableInterrupt(GPIO, switch_pin_defs[SWITCH_1].port, switch_pin_defs[SWITCH_1].pin, kGPIO_InterruptB);
 }
 
 static void serdes_gpio_pin_init()
 {
     // initialize the port for the switch
     GPIO_PortInit(GPIO, 0U);
+    GPIO_PortInit(GPIO, 1U);
 
     const gpio_pin_config_t switch_pin_cfg = {
         .pinDirection = kGPIO_DigitalInput,
@@ -93,7 +111,6 @@ static void serdes_gpio_pin_init()
                           IOPCTL_PIO_PSEDRAIN_DI |
                           /* Input function is not inverted */
                           IOPCTL_PIO_INV_DI);
-    IOPCTL_PinMuxSet(IOPCTL, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, switch_cfg);
     for (uint8_t idx = 0; idx < MAX_SWITCHES; idx++)
     {
         IOPCTL_PinMuxSet(IOPCTL, switch_pin_defs[idx].port, switch_pin_defs[idx].pin, switch_cfg);
@@ -135,9 +152,28 @@ static void serdes_gpio_pin_init()
 void GPIO_INTA_DriverIRQHandler(void)
 {
     /* clear the interrupt status */
-    GPIO_PinClearInterruptFlag(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, 0);
+    GPIO_PinClearInterruptFlag(GPIO, switch_pin_defs[SWITCH_2].port, switch_pin_defs[SWITCH_2].pin, kGPIO_InterruptA);
     serdes_push_event(SWITCH_2_PRESSED, NULL);
     SDK_ISR_EXIT_BARRIER;
+}
+// void GPIO_INTB_DriverIRQHandler(void)
+// {
+//     GPIO_PinClearInterruptFlag(GPIO, switch_pin_defs[SWITCH_1].port, switch_pin_defs[SWITCH_1].pin, kGPIO_InterruptB);
+//     serdes_push_event(ENTER_DEEP_SLEEP, NULL);
+//     SDK_ISR_EXIT_BARRIER;
+// }
+
+static void serdes_configure_pin_interrupt()
+{
+    INPUTMUX_Init(INPUTMUX);
+    INPUTMUX_AttachSignal(INPUTMUX, kPINT_PinInt0, kINPUTMUX_GpioPort1Pin1ToPintsel);
+    INPUTMUX_Deinit(INPUTMUX);
+
+    PINT_Init(PINT);
+    PINT_PinInterruptConfig(PINT, kPINT_PinInt0, kPINT_PinIntEnableFallEdge, serdes_pint_wakeup_cb);
+    PINT_EnableCallback(PINT); /* Enable callbacks for PINT */
+
+    EnableDeepSleepIRQ(PIN_INT0_IRQn);
 }
 
 void serdes_set_led_state (led_color_t led, bool is_on)
@@ -150,4 +186,26 @@ static uint8_t serdes_handle_led_event(void *userData)
     led_state_t led_state = *(led_state_t *)userData;
     serdes_set_led_state(led_state.color, led_state.set_on);
     return 0;
+}
+
+static void serdes_pint_wakeup_cb(pint_pin_int_t pintr, uint32_t pmatch_status)
+{
+    static uint32_t power_event_flags = 0;
+    power_event_flags = POWER_GetEventFlags();
+    // Exclude nothing...
+    const uint32_t exclude_pd[4] = {SYSCTL0_PDSLEEPCFG0_RBB_PD_MASK,
+                                    (SYSCTL0_PDSLEEPCFG1_FLEXSPI_SRAM_APD_MASK | SYSCTL0_PDSLEEPCFG1_FLEXSPI_SRAM_PPD_MASK),
+                                    0xFFFFF8U,
+                                    0};
+
+    if ((power_event_flags & PMC_FLAGS_DEEPPDF_MASK) != 0)
+    {
+        POWER_ClearEventFlags(PMC_FLAGS_DEEPPDF_MASK);
+        serdes_push_event(WAKEUP, &power_event_flags);
+    }
+    else
+    {
+        BOARD_EnterDeepSleep(exclude_pd);
+        // POWER_EnterSleep();
+    }
 }

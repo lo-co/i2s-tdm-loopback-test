@@ -14,6 +14,19 @@
 #define _SERDES_I2S_H
 #include "../drivers/i2s/i2s.h"
 
+typedef struct fifostat_s{
+    uint8_t err;
+    bool empty;
+    bool notfull;
+    uint8_t lvl;
+} fifostat_t;
+
+typedef enum i2s_bus_e {
+    TX = 0,
+    RX,
+    BUS_MAX
+} i2s_bus_t;
+
 /** Initialize the two I2S buses used for bridge communication.
  *
  * This will initialize FC4 and FC5 for communication between boards depending
@@ -46,6 +59,8 @@ void serdes_i2s_stop();
  */
 void serdes_i2s_start();
 
+void serdes_i2s_start_slave();
+
 /**
  * @brief Boolean determining if the I2S bus is running
  *
@@ -53,5 +68,15 @@ void serdes_i2s_start();
  * @return false Bus is not running
  */
 bool serdes_i2s_is_running();
+
+uint32_t serdes_i2s_get_fifo_status(i2s_bus_t i2s_bus);
+
+uint32_t serdes_i2s_get_fifo_config(i2s_bus_t i2s_bus);
+
+uint32_t serdes_i2s_get_cfg1(i2s_bus_t i2s_bus);
+
+uint32_t serdes_i2s_get_cfg2(i2s_bus_t i2s_bus);
+
+uint32_t serdes_i2s_get_stat(i2s_bus_t i2s_bus);
 
 #endif

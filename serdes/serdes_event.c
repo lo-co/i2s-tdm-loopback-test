@@ -56,7 +56,7 @@ static event_t event_queue[EVENT_QUEUE_SIZE] = {0};
  */
 static event_context_t *event_context;
 
-static event_t registered_events[EVENT_NO_EVENTS] = {0};
+static event_t registered_events[MAX_EVENT] = {0};
 
 /*******************************************************************************
  * Function Prototypes
@@ -113,6 +113,7 @@ evt_action_response_t serdes_push_event(evt_type_t event_type, void *userData)
     }
 
     event_t event = registered_events[event_type];
+    event.idx = event_type;
     event.usrData = userData;
     event.event_time = ostime_get_us();
 
@@ -131,8 +132,10 @@ evt_action_response_t serdes_push_event(evt_type_t event_type, void *userData)
 // Documented in .h
 evt_action_response_t serdes_dispatch_event()
 {
-    assert(event_context->is_initialized);
-
+    if (!event_context->is_initialized)
+    {
+        assert(event_context->is_initialized);
+    }
     if (event_context->tail == event_context->head){
         return EVENT_QUEUE_EMPTY;
     }

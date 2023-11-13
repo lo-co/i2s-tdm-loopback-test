@@ -48,7 +48,7 @@ const pin_def_t led_pin_defs[3] =
     };
 
 const pin_def_t switch_pin_defs[2] =
-    {{.port = 1, .pin = 10}, // SWITCH_1
+    {{.port = 1, .pin = 1}, // SWITCH_1
      {.port = 0, .pin = 10}  // SWITCH_2
     };
 

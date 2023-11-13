@@ -10,6 +10,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -73,3 +74,20 @@ uint8_t* serdes_get_next_audio_src_buffer();
  * @brief Clear buffers and reset write and read positions
  */
 void serdes_memory_init();
+
+/**
+ * @brief Determine whether there is data available for transmit
+ *
+ * @return True if there is data in the data buffer available for transmit
+ */
+bool serdes_memory_data_ready();
+
+/**
+ * @brief
+ *
+ * @return true
+ * @return false
+ */
+bool serdes_memory_more_audio_data();
+
+

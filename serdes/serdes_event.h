@@ -11,7 +11,7 @@
 
 #ifndef _SERDES_EVENT_H
 #define _SERDES_EVENT_H
-
+#include <stdint.h>
 /*******************************************************************************
  * Type Definitions
  ******************************************************************************/
@@ -22,7 +22,11 @@ typedef enum evt_type_e
     AUDIO_SRC_DATA_AVAILABLE,
     DATA_RECEIVED,
     SET_LED_STATE,
-    NO_EVENT
+    WAKEUP,
+    ENTER_DEEP_SLEEP,
+    INSERT_DATA,
+    DATA_AVAILABLE,
+    MAX_EVENT
 } evt_type_t;
 
 typedef enum evt_action_response_e
@@ -32,7 +36,7 @@ typedef enum evt_action_response_e
     EVENT_QUEUE_EMPTY,
     EVENT_CONTEXT_NOT_INITIALIZED,
     EVENT_HANDLER_ERROR,
-    EVENT_NO_EVENTS,
+    EVENT_NO_EVENTS
 } evt_action_response_t;
 
 typedef uint8_t (*event_handler)(void *userData);
