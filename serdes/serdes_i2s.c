@@ -47,7 +47,7 @@ static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
  */
 static uint8_t i2s_rx_event_cb(void *usrData);
 
-uint8_t i2s_tx_data_request(void *usrData);
+static uint8_t i2s_tx_data_request(void *usrData);
 
 
 /*******************************************************************************
@@ -62,18 +62,22 @@ static uint8_t tx_idx = 0, rx_idx = 0;
 static bool bus_is_running = false;
 
 // Bridge I2S
-i2s_context_t tx_i2s_context;
-i2s_init_t tx_config = {.flexcomm_bus = FLEXCOMM_4, .is_transmit = true,
+static i2s_context_t tx_i2s_context;
+static i2s_init_t tx_config = {.flexcomm_bus = FLEXCOMM_4, .is_transmit = true,
                         .is_master = true, .active_channels = NUM_CHANNELS,
                         .sample_rate = SAMPLE_RATE_HZ, .datalength = DATA_LEN_BITS,
                         .callback = tx_i2s_cb, .context = &tx_i2s_context,
                         .share_clk = false, .shared_clk_set = NO_SHARE};
-i2s_context_t rx_i2s_context;
-i2s_init_t rx_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
+static i2s_context_t rx_i2s_context;
+static i2s_init_t rx_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
                         .is_master = true, .active_channels = NUM_CHANNELS,
                         .sample_rate = SAMPLE_RATE_HZ, .datalength = DATA_LEN_BITS,
                         .callback = rx_i2s_cb, .context = &rx_i2s_context,
                         .share_clk = false, .shared_clk_set = NO_SHARE};
+
+static uint32_t err_cnt = 0;
+
+static uint64_t store_time[125] = {0};
 
 /*******************************************************************************
  * Function Definitions
@@ -147,7 +151,12 @@ bool serdes_i2s_is_running()
 // Documented above
 static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
-    if (serdes_memory_more_audio_data())
+
+    // For the master, we assume that while transmitting there is always more data.
+    // This allows for testing of the connection using something such as fill_memory
+    // without constantly having to replenish the buffer explicitly.
+    // TODO: this should be changed in the future so that no stale buffers are sent.
+    if (tx_config.is_master || serdes_memory_more_audio_data())
     {
         i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
         I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
@@ -160,11 +169,19 @@ static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 // Documented above
 static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
+    static uint8_t index = 0;
     i2s_transfer_t txf = {.data = serdes_get_next_rx_buffer(), .dataSize = BUFFER_SIZE};
     I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
 
     serdes_push_event(DATA_RECEIVED, txf.data);
+    if (rx_config.context->base->STAT & 0x2)
+    {
+        err_cnt++;
+        rx_config.context->base->STAT = 0x2;
+    }
 
+    store_time[index++] = ostime_get_us();
+    index = index < 125 ? index : 0;
     // Make sure the buffer is in bounds
     rx_idx = rx_idx >= BUFFER_NUMBER ? 0 : rx_idx;
 }
@@ -177,7 +194,7 @@ uint8_t i2s_rx_event_cb(void *usrData)
     return 0;
 }
 
-uint8_t i2s_tx_data_request(void *usrData)
+static uint8_t i2s_tx_data_request(void *usrData)
 {
     i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
     status_t status = I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
@@ -247,6 +264,16 @@ uint32_t serdes_i2s_get_stat(i2s_bus_t i2s_bus)
     {
         return rx_config.context->base->STAT;
     }
+}
+
+uint64_t *serdes_i2s_rx_times()
+{
+    return store_time;
+}
+
+uint32_t serdes_i2s_get_err_cnt()
+{
+    return err_cnt;
 }
 
 

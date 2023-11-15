@@ -66,7 +66,7 @@ static event_t registered_events[MAX_EVENT] = {0};
  *
  * @returns 64-bit integer representing time in microseconds
 */
-static uint64_t ostime_get_us();
+// static uint64_t ostime_get_us();
 
 /*******************************************************************************
  * Function Definitions
@@ -108,7 +108,7 @@ evt_action_response_t serdes_push_event(evt_type_t event_type, void *userData)
 
     if (event_context->full)
     {
-        PRINTF("Attempt to push event into queue failed.  Queue is full...\r\n");
+        // PRINTF("Attempt to push event into queue failed.  Queue is full...\r\n");
         return EVENT_QUEUE_FULL;
     }
 
@@ -160,7 +160,7 @@ evt_action_response_t serdes_dispatch_event()
 }
 
 // Documented above
-static uint64_t ostime_get_us()
+uint64_t ostime_get_us()
 {
     const uint64_t timer_ticks = OSTIMER_GetCurrentTimerValue(OSTIMER0);
 

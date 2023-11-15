@@ -181,6 +181,7 @@ void i2s_init(i2s_init_t config)
     i2sConfig.dataLength = config.datalength;
     i2sConfig.frameLength = config.datalength * config.active_channels;
     i2sConfig.divider = config.is_master ? (FLEXCOMM_CLOCK_SOURCE / config.sample_rate / i2sConfig.frameLength) : 1;
+    // i2sConfig.divider = (FLEXCOMM_CLOCK_SOURCE / config.sample_rate / i2sConfig.frameLength);
     i2sConfig.wsPol = true;
 
     set_peripheral_address(config);

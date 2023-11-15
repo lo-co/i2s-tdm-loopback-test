@@ -90,4 +90,7 @@ bool serdes_memory_data_ready();
  */
 bool serdes_memory_more_audio_data();
 
+uint8_t* serdes_get_last_rx_buffer();
+
+
 

@@ -86,4 +86,6 @@ evt_action_response_t serdes_event_reset();
 
 void serdes_register_handler(evt_type_t event, event_handler handler);
 
+uint64_t ostime_get_us();
+
 #endif

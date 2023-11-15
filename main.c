@@ -48,6 +48,7 @@ static uint8_t enter_deep_sleep_cb(void *usrData);
 
 static led_state_t led_state = {.color = GREEN, .set_on = true};
 static uint8_t button_press_data = 0xFF;
+uint32_t mem[1024] = {0};
 
 /*******************************************************************************
  * Code
@@ -66,7 +67,6 @@ int main(void)
     serdes_register_handler(ENTER_DEEP_SLEEP, enter_deep_sleep_cb);
     serdes_register_handler(SWITCH_2_PRESSED, sw2_int_cb);
     serdes_gpio_init();
-    // serdes_power_init();
     serdes_i2s_init(BOARD_IS_MASTER);
     CLOCK_EnableClock(kCLOCK_InputMux);
     PRINTF("SERDES main application starting...\r\n");
@@ -75,7 +75,7 @@ int main(void)
     if (BOARD_IS_MASTER)
     {
         PRINTF("Board is master\r\n");
-        serdes_codec_init();
+        // serdes_codec_init();
 
         // initialize amps and mics
     }
@@ -109,7 +109,7 @@ static uint8_t sw2_int_cb(void *usrData)
             serdes_i2s_start();
             if (BOARD_IS_MASTER)
             {
-                serdes_codec_src_start();
+                // serdes_codec_src_start();
             }
         }
         else
@@ -117,7 +117,7 @@ static uint8_t sw2_int_cb(void *usrData)
             led_state.set_on = false;
             if (BOARD_IS_MASTER)
             {
-                serdes_codec_src_stop();
+                // serdes_codec_src_stop();
             }
             serdes_i2s_stop();
             PRINTF("Stopping I2S transmission now..\r\n");
@@ -126,11 +126,23 @@ static uint8_t sw2_int_cb(void *usrData)
     }
     else // BOARD is slave...
     {
+        const int mem_len = 1024;
+        uint64_t *times = serdes_i2s_rx_times();
+
+        memcpy(mem, serdes_get_last_rx_buffer(), mem_len);
         PRINTF("RX FIFOCFG:\t0x%X\r\n", serdes_i2s_get_fifo_config(RX));
         PRINTF("RX FIFOSTAT:\t0x%X\r\n", serdes_i2s_get_fifo_status(RX));
         PRINTF("RX CFG1:\t0x%X\r\n", serdes_i2s_get_cfg1(RX));
         PRINTF("RX CFG2:\t0x%X\r\n", serdes_i2s_get_cfg2(RX));
         PRINTF("RX STAT:\t0x%X\r\n", serdes_i2s_get_stat(RX));
+        PRINTF("RX Err Cnt: %d\r\n", serdes_i2s_get_err_cnt());
+        PRINTF("RX Times: \r\n");
+        for (int i = 0; i < 125; i++)
+        {
+            PRINTF("%d:\t%d\r\n", i, times[i]);
+
+        }
+
         // TODO: probably shove this off to GPIO or mem module...for now play away...
         static data_pckt_t data = {.src = SRC_GPIO, .data = &button_press_data, .data_length = 1};
         // serdes_mem_insert_data_data(data);

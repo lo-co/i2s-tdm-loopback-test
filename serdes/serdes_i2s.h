@@ -69,14 +69,49 @@ void serdes_i2s_start_slave();
  */
 bool serdes_i2s_is_running();
 
+/* THE FOLLOWING ARE PROVIDED FOR DEBUGGING ACCESS */
+/**
+ * @brief Get the FIFOSTAT register
+ *
+ * @param i2s_bus - receive or transmit bus
+ * @return Register value
+ */
 uint32_t serdes_i2s_get_fifo_status(i2s_bus_t i2s_bus);
 
+/**
+ * @brief Get the FIFOCFG register
+ *
+ * @param i2s_bus receive or transmit
+ * @return Register value
+ */
 uint32_t serdes_i2s_get_fifo_config(i2s_bus_t i2s_bus);
 
+/**
+ * @brief Get the I2S CFG1 register
+ *
+ * @param i2s_bus Receive or transmit bus
+ * @return Value of CFG1 register
+ */
 uint32_t serdes_i2s_get_cfg1(i2s_bus_t i2s_bus);
 
+/**
+ * @brief Get the I2S CFG2 register
+ *
+ * @param i2s_bus Receive or transmit bus
+ * @return Value of CFG2 register
+ */
 uint32_t serdes_i2s_get_cfg2(i2s_bus_t i2s_bus);
 
+/**
+ * @brief Get the value of the I2S STAT register
+ *
+ * @param i2s_bus Receive or transmit bus
+ * @return Value of STAT register
+ */
 uint32_t serdes_i2s_get_stat(i2s_bus_t i2s_bus);
+
+uint32_t serdes_i2s_get_err_cnt();
+
+uint64_t *serdes_i2s_rx_times();
 
 #endif

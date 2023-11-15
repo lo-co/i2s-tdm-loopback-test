@@ -181,11 +181,19 @@ uint8_t* serdes_get_next_rx_buffer()
 {
     uint8_t *rx_buffer = rx_audio_buffer + s_audio_rx_position++ * BUFFER_SIZE;
 
+    memset(rx_buffer, 0, BUFFER_SIZE);
+
     if (s_audio_rx_position >= BUFFER_NUMBER)
     {
         s_audio_rx_position = 0;
     }
     return rx_buffer;
+}
+
+uint8_t* serdes_get_last_rx_buffer()
+{
+    uint32_t position = s_audio_rx_position == 0 ? BUFFER_NUMBER-1 : s_audio_rx_position - 1;
+    return rx_audio_buffer + s_audio_rx_position * BUFFER_SIZE;
 }
 
 // Documentation in .h
@@ -204,7 +212,7 @@ uint8_t* serdes_get_next_audio_src_buffer()
 void serdes_memory_init()
 {
     memset(tx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-    // fill_test_pattern();
+    fill_test_pattern();
     memset(rx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
     memset(tx_data_buffer, 0, NUMBER_DATA_BUFFERS * DATA_BUFFER_SIZE);
     memset(audio_src_data, 0, NUMBER_CODEC_BUFFERS * BUFFER_SIZE);
