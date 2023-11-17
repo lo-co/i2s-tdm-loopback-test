@@ -59,6 +59,13 @@ void serdes_i2s_stop();
  */
 void serdes_i2s_start();
 
+/**
+ * @brief Start the slave receiver portion of the I2S bus
+ *
+ * This will queue up two receive buffers.  Two receive buffers will be needed to make sure
+ * that when one is returned, space is available in another to continuously transfer without
+ * intervention of the CPU.
+ */
 void serdes_i2s_start_slave();
 
 /**
@@ -109,9 +116,5 @@ uint32_t serdes_i2s_get_cfg2(i2s_bus_t i2s_bus);
  * @return Value of STAT register
  */
 uint32_t serdes_i2s_get_stat(i2s_bus_t i2s_bus);
-
-uint32_t serdes_i2s_get_err_cnt();
-
-uint64_t *serdes_i2s_rx_times();
 
 #endif

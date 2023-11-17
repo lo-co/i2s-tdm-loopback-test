@@ -7,6 +7,7 @@
 
 #include "board.h"
 #include "serdes_gpio.h"
+#include "serdes_protocom.h"
 
 /*******************************************************************************
  * Definitions
@@ -46,18 +47,22 @@ static uint8_t serdes_handle_led_event(void *userData);
  */
 static void serdes_configure_pin_interrupt();
 
-static void serdes_pint_wakeup_cb(pint_pin_int_t pintr, uint32_t pmatch_status);
+static void serdes_pint_cb(pint_pin_int_t pintr, uint32_t pmatch_status);
 
 /*******************************************************************************
  * Variables
  ******************************************************************************/
 static bool serdes_pins_initialized =  false;
+static bool is_slave = false;
+static uint8_t led_state = 0x0;
+static data_pckt_t led_data = {.src = SRC_GPIO, .data_length = 1, .data = &led_state};
 /*******************************************************************************
  * Function Definitions
  ******************************************************************************/
 
-void serdes_gpio_init()
+void serdes_gpio_init(bool is_master)
 {
+    is_slave = !is_master;
     // Maintain a copy of the configuration structure
     serdes_gpio_pin_init();
     serdes_gpio_cfg_sw2_int();
@@ -170,7 +175,7 @@ static void serdes_configure_pin_interrupt()
     INPUTMUX_Deinit(INPUTMUX);
 
     PINT_Init(PINT);
-    PINT_PinInterruptConfig(PINT, kPINT_PinInt0, kPINT_PinIntEnableFallEdge, serdes_pint_wakeup_cb);
+    PINT_PinInterruptConfig(PINT, kPINT_PinInt0, kPINT_PinIntEnableFallEdge, serdes_pint_cb);
     PINT_EnableCallback(PINT); /* Enable callbacks for PINT */
 
     EnableDeepSleepIRQ(PIN_INT0_IRQn);
@@ -188,24 +193,26 @@ static uint8_t serdes_handle_led_event(void *userData)
     return 0;
 }
 
-static void serdes_pint_wakeup_cb(pint_pin_int_t pintr, uint32_t pmatch_status)
+static void serdes_pint_cb(pint_pin_int_t pintr, uint32_t pmatch_status)
 {
-    static uint32_t power_event_flags = 0;
-    power_event_flags = POWER_GetEventFlags();
-    // Exclude nothing...
-    const uint32_t exclude_pd[4] = {SYSCTL0_PDSLEEPCFG0_RBB_PD_MASK,
-                                    (SYSCTL0_PDSLEEPCFG1_FLEXSPI_SRAM_APD_MASK | SYSCTL0_PDSLEEPCFG1_FLEXSPI_SRAM_PPD_MASK),
-                                    0xFFFFF8U,
-                                    0};
-
-    if ((power_event_flags & PMC_FLAGS_DEEPPDF_MASK) != 0)
+    if (is_slave)
     {
-        POWER_ClearEventFlags(PMC_FLAGS_DEEPPDF_MASK);
-        serdes_push_event(WAKEUP, &power_event_flags);
+        led_state = !led_state ? 0xFF : 0x0;
+        serdes_push_event(INSERT_DATA, &led_data);
     }
-    else
-    {
-        BOARD_EnterDeepSleep(exclude_pd);
-        // POWER_EnterSleep();
+    else{
+        static uint32_t power_event_flags = 0;
+        power_event_flags = POWER_GetEventFlags();
+        // Exclude nothing...
+        if ((power_event_flags & PMC_FLAGS_DEEPPDF_MASK) != 0)
+        {
+            POWER_ClearEventFlags(PMC_FLAGS_DEEPPDF_MASK);
+            serdes_push_event(WAKEUP, &power_event_flags);
+        }
+        else
+        {
+            // BOARD_EnterDeepSleep(exclude_pd);
+            // POWER_EnterSleep();
+        }
     }
 }

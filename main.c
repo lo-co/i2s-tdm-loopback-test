@@ -25,29 +25,61 @@
 #include "serdes/serdes_gpio.h"
 #include "serdes/serdes_i2s.h"
 #include "serdes/serdes_memory.h"
-#include "serdes/serdes_power.h"
+#include "serdes/serdes_protocom.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
 #ifndef BOARD_IS_MASTER
-#define BOARD_IS_MASTER 0
+#define BOARD_IS_MASTER 1
 #endif
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
 
+/**
+ * @brief Event handler for pressing switch 2.
+ *
+ * Switch two functionality is defined only for the master.  When the switch two
+ * button is pressed, the I2S bridge will be activated.  When the bridge is
+ * activated, the green LED will light up.
+ *
+ * @param usrData UNUSED for the master
+ * @return 0 on success
+ */
 static uint8_t sw2_int_cb(void *usrData);
 
 static uint8_t wakeup_cb(void *usrData);
 
 static uint8_t enter_deep_sleep_cb(void *usrData);
 
+/**
+ * @brief Handle the serialization of data for transfer across the I2S bridge
+ *
+ * Once data is serialized, flag that data is available for transmit via
+ * the DATA_AVAILABLE event.
+ *
+ * @param usrData data_pckt_t structure of data to be serialized
+ * @return MEMORY_STATUS_FULL if buffer is full
+ * @return 0 if success
+ */
+static uint8_t data_handler(void *usrData);
+
+/**
+ * @brief Handle request sent across the bridge
+ *
+ * This will fire an event representing  the action requested that came
+ * across the bridge.
+ *
+ * @param usrData data_pckt_t structure of data to be acted on
+ * @return uint8_t
+ */
+static uint8_t process_data_received(void *usrData);
+
 /*******************************************************************************
  * Variables
  ******************************************************************************/
 
 static led_state_t led_state = {.color = GREEN, .set_on = true};
-static uint8_t button_press_data = 0xFF;
 uint32_t mem[1024] = {0};
 
 /*******************************************************************************
@@ -65,8 +97,10 @@ int main(void)
     serdes_event_init();
     serdes_register_handler(WAKEUP, wakeup_cb);
     serdes_register_handler(ENTER_DEEP_SLEEP, enter_deep_sleep_cb);
+    serdes_register_handler(INSERT_DATA, data_handler);
     serdes_register_handler(SWITCH_2_PRESSED, sw2_int_cb);
-    serdes_gpio_init();
+    serdes_register_handler(HANDLE_DATA_RECEIVED, process_data_received);
+    serdes_gpio_init(BOARD_IS_MASTER);
     serdes_i2s_init(BOARD_IS_MASTER);
     CLOCK_EnableClock(kCLOCK_InputMux);
     PRINTF("SERDES main application starting...\r\n");
@@ -75,12 +109,15 @@ int main(void)
     if (BOARD_IS_MASTER)
     {
         PRINTF("Board is master\r\n");
-        // serdes_codec_init();
+        serdes_codec_init();
 
         // initialize amps and mics
     }
     else {
         PRINTF("Board is slave\r\n");
+        led_state.set_on = true;
+        led_state.color = BLUE;
+        serdes_push_event(SET_LED_STATE, &led_state);
     }
 
     // Kick off main loop...
@@ -92,11 +129,11 @@ int main(void)
         if (!BOARD_IS_MASTER && serdes_memory_data_ready())
         {
             // Transmit I2S here
-
         }
     }
 }
 
+// Documented boave
 static uint8_t sw2_int_cb(void *usrData)
 {
     if (BOARD_IS_MASTER)
@@ -105,16 +142,18 @@ static uint8_t sw2_int_cb(void *usrData)
         if (!serdes_i2s_is_running())
         {
             led_state.set_on = true;
+            led_state.color = GREEN;
             PRINTF("Starting I2S bus...\r\n");
             serdes_i2s_start();
             if (BOARD_IS_MASTER)
             {
-                // serdes_codec_src_start();
+                serdes_codec_src_start();
             }
         }
         else
         {
             led_state.set_on = false;
+            led_state.color = GREEN;
             if (BOARD_IS_MASTER)
             {
                 // serdes_codec_src_stop();
@@ -126,25 +165,8 @@ static uint8_t sw2_int_cb(void *usrData)
     }
     else // BOARD is slave...
     {
-        const int mem_len = 1024;
-        uint64_t *times = serdes_i2s_rx_times();
-
-        memcpy(mem, serdes_get_last_rx_buffer(), mem_len);
-        PRINTF("RX FIFOCFG:\t0x%X\r\n", serdes_i2s_get_fifo_config(RX));
-        PRINTF("RX FIFOSTAT:\t0x%X\r\n", serdes_i2s_get_fifo_status(RX));
-        PRINTF("RX CFG1:\t0x%X\r\n", serdes_i2s_get_cfg1(RX));
-        PRINTF("RX CFG2:\t0x%X\r\n", serdes_i2s_get_cfg2(RX));
-        PRINTF("RX STAT:\t0x%X\r\n", serdes_i2s_get_stat(RX));
-        PRINTF("RX Err Cnt: %d\r\n", serdes_i2s_get_err_cnt());
-        PRINTF("RX Times: \r\n");
-        for (int i = 0; i < 125; i++)
-        {
-            PRINTF("%d:\t%d\r\n", i, times[i]);
-
-        }
-
         // TODO: probably shove this off to GPIO or mem module...for now play away...
-        static data_pckt_t data = {.src = SRC_GPIO, .data = &button_press_data, .data_length = 1};
+        // static data_pckt_t data = {.src = SRC_GPIO, .data = &button_press_data, .data_length = 1};
         // serdes_mem_insert_data_data(data);
         // serdes_push_event(INSERT_DATA, &data);
     }
@@ -161,5 +183,49 @@ static uint8_t wakeup_cb(void *usrData)
 static uint8_t enter_deep_sleep_cb(void *usrData)
 {
     PRINTF("Entering deep sleep...\r\n");
+    return 0;
+}
+
+// Documented above
+static uint8_t data_handler(void *usrData)
+{
+    data_pckt_t data_pckt = *(data_pckt_t *)usrData;
+
+    memory_status_t status = serdes_mem_insert_data_data(serdes_protocom_serialize_data(data_pckt));
+
+    // If the board is not actively transmitting then we are sending 0s;
+    // we will then increment the buffer and make sure the data sits in the
+    // buffer.  Here is an issue - what if we want to bundle.
+    // TODO: Handle bundling of requests
+    if (!BOARD_IS_MASTER)
+    {
+        serdes_mem_insert_audio_data(NULL, BUFFER_SIZE);
+    }
+    if (MEMORY_STATUS_SUCCESS == status)
+    {
+        serdes_push_event(DATA_AVAILABLE, NULL);
+    }
+
+    return status;
+}
+
+// Documented above
+static uint8_t process_data_received(void *usrData)
+{
+    data_pckt_t data_pckt = *(data_pckt_t *)usrData;
+
+    switch (data_pckt.src)
+    {
+        case SRC_GPIO:
+            led_state.color = BLUE;
+            led_state.set_on = *data_pckt.data == 0xFF;
+            serdes_push_event(SET_LED_STATE, &led_state);
+            break;
+
+        default:
+            PRINTF("DATA NOT HANDLED\r\n");
+            break;
+    }
+
     return 0;
 }

@@ -18,19 +18,12 @@
  * Type Definitions
  ******************************************************************************/
 
-typedef enum data_src_e {
-    SRC_GPIO = 0x0,
-    SRC_I2C = 0x1,
-    SRC_SPI = 0x2,
-    SRC_UART = 0x3,
-    SRC_NUM = 0x4
-} data_src_t;
-
-typedef struct data_pckt_s {
-    data_src_t src;
-    uint8_t *data;
-    uint32_t data_length;
-} data_pckt_t;
+typedef enum memory_status_e {
+    MEMORY_STATUS_SUCCESS = 0,
+    MEMORY_STATUS_EMPTY,
+    MEMORY_STATUS_FULL,
+    MEMORY_STATUS_END
+} memory_status_t;
 
 /*******************************************************************************
  * Function Prototypes
@@ -51,10 +44,15 @@ void serdes_mem_insert_audio_data(uint8_t *buffer, uint32_t length);
 /**
  * @brief Insert data into the data buffer
  *
- * @param data Data to be inserted into the buffer.  If the length exceeds 8 bytes
- *             for the data then the data will occupy multiple slots.
+ * This function is strictly for sending data to the paired device.  There is no
+ * corresponding retrieval of data - this is done when the bridge is active.
+ * The buffer will be drained as the device transmits
+ *
+ * @param data Data to be inserted into the buffer.
+ * @return MEMORY_STATUS_SUCCESS if space is available
+ * @return MEMORY_STATUS_FULL if space is not available
  */
-void serdes_mem_insert_data_data(data_pckt_t data);
+memory_status_t serdes_mem_insert_data_data(uint64_t data);
 
 /**
  * @brief Return the current read buffer for transmit.
@@ -64,6 +62,8 @@ void serdes_mem_insert_data_data(data_pckt_t data);
 uint8_t* serdes_get_next_tx_buffer();
 
 uint8_t* serdes_get_next_rx_buffer();
+
+memory_status_t serdes_mem_get_next_read_buffer(uint8_t **buffer);
 
 /**
  * @brief Retrieve the next buffer position for writing audio data to

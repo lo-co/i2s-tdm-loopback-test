@@ -17,6 +17,6 @@
  * @param tone_length Number of points that define a whole cycle.
  * @param max_volume Maximum volume - 32-bit max is maximum volume.
 */
-void generate_tone(int32_t *tone, uint32_t tone_length, int32_t max_volume);
+void generate_tone(int32_t *tone, uint32_t tone_length, uint8_t vol_per);
 
 #endif

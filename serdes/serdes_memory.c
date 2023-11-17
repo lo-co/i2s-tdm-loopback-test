@@ -2,6 +2,7 @@
 #include "serdes_defs.h"
 #include "serdes_event.h"
 #include "serdes_memory.h"
+#include "serdes_utilities.h"
 #include "fsl_common.h"
 /*******************************************************************************
  * Definitions
@@ -19,10 +20,7 @@
  * First four buffers of the tx buffer will be filled with 1, 2,
  * 3, and 4 in that order.  The remainder are 0s.
  */
-void fill_test_pattern();
-
-uint8_t serdes_memory_insert_data_with_zeros(void *usrData);
-
+void fill_test_pattern(bool tone);
 
 /*******************************************************************************
  * Variables
@@ -73,7 +71,9 @@ static uint8_t s_data_read_position = 0;
 /**
  * @brief Current position to receive data to from the I2S bus
  */
-static uint8_t s_audio_rx_position = 0;
+static uint8_t s_audio_rx_write_position = 0;
+
+static uint8_t s_audio_rx_read_position = 0;
 
 /**
  * @brief Current position to receive data to from the I2S bus
@@ -85,12 +85,16 @@ static uint8_t s_audio_src_write_position = 0;
  */
 static uint8_t s_audio_src_read_position = 0;
 
+static bool data_memory_full = false;
+
 /*******************************************************************************
  * Function Definitions
  ******************************************************************************/
+
 void serdes_mem_insert_audio_data(uint8_t *buffer, uint32_t length)
 {
     uint64_t *current_buffer = (uint64_t *)(tx_audio_buffer + s_audio_write_position * BUFFER_SIZE);
+
     // Make sure the buffer is zeroed...
     memset(current_buffer, 0, BUFFER_SIZE);
 
@@ -144,23 +148,17 @@ void serdes_mem_insert_audio_data(uint8_t *buffer, uint32_t length)
 // TODO: Fill out this function so data is inserted properly
 // Will have to define a protocol for this
 // TODO: report to user if they try to insert data when no space available
-void serdes_mem_insert_data_data(data_pckt_t data)
+memory_status_t serdes_mem_insert_data_data(uint64_t data)
 {
-    uint8_t *current_data_buffer = (uint8_t *)&tx_data_buffer[s_data_write_position];
-    *current_data_buffer++ = 0x1;
-    *current_data_buffer++ = data.src;
-    *(uint32_t *)current_data_buffer = data.data_length;
-
-    // TODO: This could spill over into other packets...
-    for (uint32_t idx = 0; idx < data.data_length; idx++)
+    if (data_memory_full)
     {
-        *(current_data_buffer + 4 + idx) = *(data.data + idx);
+        return MEMORY_STATUS_FULL;
     }
 
-    if (++s_data_write_position >= NUMBER_DATA_BUFFERS)
-    {
-        s_data_write_position = 0;
-    }
+    tx_data_buffer[s_data_write_position++] = data;
+
+    data_memory_full = s_data_write_position == s_data_read_position;
+    return MEMORY_STATUS_SUCCESS;
 }
 
 // Documentation in .h
@@ -173,27 +171,36 @@ uint8_t* serdes_get_next_tx_buffer()
         s_audio_read_position = 0;
     }
     return tx_buffer;
-
 }
 
 // Documentation in .h
 uint8_t* serdes_get_next_rx_buffer()
 {
-    uint8_t *rx_buffer = rx_audio_buffer + s_audio_rx_position++ * BUFFER_SIZE;
+    uint8_t *rx_buffer = rx_audio_buffer + s_audio_rx_write_position++ * BUFFER_SIZE;
 
     memset(rx_buffer, 0, BUFFER_SIZE);
 
-    if (s_audio_rx_position >= BUFFER_NUMBER)
+    if (s_audio_rx_write_position >= BUFFER_NUMBER)
     {
-        s_audio_rx_position = 0;
+        s_audio_rx_write_position = 0;
     }
     return rx_buffer;
 }
 
-uint8_t* serdes_get_last_rx_buffer()
+memory_status_t serdes_mem_get_next_read_buffer(uint8_t **buffer)
 {
-    uint32_t position = s_audio_rx_position == 0 ? BUFFER_NUMBER-1 : s_audio_rx_position - 1;
-    return rx_audio_buffer + s_audio_rx_position * BUFFER_SIZE;
+    if (s_audio_rx_read_position == s_audio_rx_write_position)
+    {
+        return MEMORY_STATUS_EMPTY;
+    }
+
+    *buffer = rx_audio_buffer + s_audio_rx_read_position++ * BUFFER_SIZE;
+
+    if (s_audio_rx_read_position >= BUFFER_NUMBER)
+    {
+        s_audio_rx_read_position = 0;
+    }
+    return MEMORY_STATUS_SUCCESS;
 }
 
 // Documentation in .h
@@ -212,7 +219,7 @@ uint8_t* serdes_get_next_audio_src_buffer()
 void serdes_memory_init()
 {
     memset(tx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-    fill_test_pattern();
+    // fill_test_pattern();
     memset(rx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
     memset(tx_data_buffer, 0, NUMBER_DATA_BUFFERS * DATA_BUFFER_SIZE);
     memset(audio_src_data, 0, NUMBER_CODEC_BUFFERS * BUFFER_SIZE);
@@ -221,10 +228,9 @@ void serdes_memory_init()
     // Start the read buffer two positions behind the write.  So, not matter what we have
     // 2 buffers of silence before transmission of data
     s_audio_write_position = 2;
-    s_audio_read_position = s_data_read_position = s_data_write_position = s_audio_rx_position = 0;
+    s_audio_read_position = s_data_read_position = s_data_write_position = 0;
+    s_audio_rx_read_position = s_audio_rx_write_position = 0;
     s_audio_src_write_position = s_audio_src_read_position = 0;
-
-    serdes_register_handler(INSERT_DATA, serdes_memory_insert_data_with_zeros);
 }
 
 // Documented in .h
@@ -238,22 +244,32 @@ bool serdes_memory_more_audio_data()
     return s_audio_read_position != s_audio_write_position;
 }
 
-
 // Documented above
-void fill_test_pattern()
+void fill_test_pattern(bool tone)
 {
-    memset(tx_audio_buffer, 1, BUFFER_SIZE);
-    memset(tx_audio_buffer+BUFFER_SIZE, 2, BUFFER_SIZE);
-    memset(tx_audio_buffer+2*BUFFER_SIZE, 3, BUFFER_SIZE);
-    memset(tx_audio_buffer+3*BUFFER_SIZE, 4, BUFFER_SIZE);
-}
+    if (tone)
+    {
+        int32_t tone_input[48] = {0};
+        generate_tone(tone_input, 48, 50);
+        uint32_t *tx_buffer = (uint32_t *)tx_audio_buffer;
+        uint32_t buffer_size = NUM_CHANNELS * BUFFER_SIZE / 4;
 
-uint8_t serdes_memory_insert_data_with_zeros(void *usrData)
-{
-    data_pckt_t *data = (data_pckt_t *)usrData;
-    serdes_mem_insert_data_data(*data);
-    serdes_mem_insert_audio_data(NULL, 0);
-    serdes_push_event(DATA_AVAILABLE, NULL);
-
-    return 0;
+        // Set teh buffer to zero and fill it with the tonein channels
+        // 0 and 1.
+        memset(tx_buffer, 0, buffer_size);
+        for (uint32_t i = 0, j = 0; i < buffer_size; )
+        {
+            *(tx_buffer + i++) = tone_input[j];
+            *(tx_buffer + i++) = tone_input[j++];
+            j = j >=48 ? 0 : j;
+            i += 2;
+        }
+    }
+    else
+    {
+        memset(tx_audio_buffer, 1, BUFFER_SIZE);
+        memset(tx_audio_buffer+BUFFER_SIZE, 2, BUFFER_SIZE);
+        memset(tx_audio_buffer+2*BUFFER_SIZE, 3, BUFFER_SIZE);
+        memset(tx_audio_buffer+3*BUFFER_SIZE, 4, BUFFER_SIZE);
+    }
 }

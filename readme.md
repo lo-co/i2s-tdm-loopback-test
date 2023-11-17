@@ -16,6 +16,15 @@ In addition to the codec on the master, the audio EVK provides other built in pe
 
 ## RT685 Capabilities
 
+## Functions
+
+Blue LED indicates that the board is acting as a slave and is on at boot.
+
+Green LED is lit when the master is transmitting on the bridge.
+
+Pressing switch two on the master will start I2S transmission.
+
+Pressing switch two on the slave will load a request for lighting up the LED on the master
 
 # Resources
 

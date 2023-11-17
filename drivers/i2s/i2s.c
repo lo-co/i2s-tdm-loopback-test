@@ -175,13 +175,12 @@ void i2s_init(i2s_init_t config)
         I2S_RxGetDefaultConfig(&i2sConfig);
     }
 
-    i2sConfig.position = 1;
+    i2sConfig.position = config.is_transmit ? 1 : 0;
     i2sConfig.masterSlave = config.is_master ? kI2S_MasterSlaveNormalMaster : kI2S_MasterSlaveNormalSlave;
     i2sConfig.mode = config.active_channels > 2 ? kI2S_ModeDspWsShort : kI2S_ModeI2sClassic;
     i2sConfig.dataLength = config.datalength;
     i2sConfig.frameLength = config.datalength * config.active_channels;
     i2sConfig.divider = config.is_master ? (FLEXCOMM_CLOCK_SOURCE / config.sample_rate / i2sConfig.frameLength) : 1;
-    // i2sConfig.divider = (FLEXCOMM_CLOCK_SOURCE / config.sample_rate / i2sConfig.frameLength);
     i2sConfig.wsPol = true;
 
     set_peripheral_address(config);
