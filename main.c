@@ -23,6 +23,7 @@
 #include "serdes/serdes_defs.h"
 #include "serdes/serdes_event.h"
 #include "serdes/serdes_gpio.h"
+#include "serdes/serdes_amplifier.h"
 #include "serdes/serdes_i2s.h"
 #include "serdes/serdes_memory.h"
 #include "serdes/serdes_protocom.h"
@@ -102,6 +103,10 @@ int main(void)
     serdes_register_handler(HANDLE_DATA_RECEIVED, process_data_received);
     serdes_gpio_init(BOARD_IS_MASTER);
     serdes_i2s_init(BOARD_IS_MASTER);
+    if (BOARD_IS_MASTER)
+    {
+        serdes_amp_init();
+    }
     CLOCK_EnableClock(kCLOCK_InputMux);
     PRINTF("SERDES main application starting...\r\n");
     /********** END INITIALIZATION *************/

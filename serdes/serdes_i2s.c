@@ -1,5 +1,4 @@
 #include "serdes_i2s.h"
-#include "fsl_i2c.h"
 #include "serdes_defs.h"
 #include "serdes_event.h"
 #include "serdes_memory.h"
