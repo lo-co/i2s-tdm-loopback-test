@@ -219,7 +219,7 @@ uint8_t* serdes_get_next_audio_src_buffer()
 void serdes_memory_init()
 {
     memset(tx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-    // fill_test_pattern();
+    fill_test_pattern(true);
     memset(rx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
     memset(tx_data_buffer, 0, NUMBER_DATA_BUFFERS * DATA_BUFFER_SIZE);
     memset(audio_src_data, 0, NUMBER_CODEC_BUFFERS * BUFFER_SIZE);

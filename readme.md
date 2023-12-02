@@ -28,6 +28,8 @@ I2S busses on flexcomms 4 and 5 are located on J27 and J28 respectively.  The wi
 |         |  6  |              |      DATA    |
 |         |  7  |              |     GND      |
 
+Switch 2 input is triggered as an output on P0_5 which can be accessed on J30 pin 1.
+
 
 ### Jumper Settings
 

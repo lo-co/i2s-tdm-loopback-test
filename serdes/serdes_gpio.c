@@ -98,58 +98,47 @@ static void serdes_gpio_pin_init()
     };
 
     // Connect the pins
-    const uint32_t switch_cfg = (/* Pin is configured as PIO0_10 */
-                          IOPCTL_PIO_FUNC0 |
-                          /* Disable pull-up / pull-down function */
-                          IOPCTL_PIO_PUPD_DI |
-                          /* Enable pull-down function */
-                          IOPCTL_PIO_PULLDOWN_EN |
-                          /* Enables input buffer function */
-                          IOPCTL_PIO_INBUF_EN |
-                          /* Normal mode */
-                          IOPCTL_PIO_SLEW_RATE_NORMAL |
-                          /* Normal drive */
-                          IOPCTL_PIO_FULLDRIVE_DI |
-                          /* Analog mux is disabled */
-                          IOPCTL_PIO_ANAMUX_DI |
-                          /* Pseudo Output Drain is disabled */
-                          IOPCTL_PIO_PSEDRAIN_DI |
-                          /* Input function is not inverted */
-                          IOPCTL_PIO_INV_DI);
+    const uint32_t switch_cfg = (IOPCTL_PIO_FUNC0 |
+                                IOPCTL_PIO_PUPD_DI |
+                                IOPCTL_PIO_PULLDOWN_EN |
+                                IOPCTL_PIO_INBUF_EN |
+                                IOPCTL_PIO_SLEW_RATE_NORMAL |
+                                IOPCTL_PIO_FULLDRIVE_DI |
+                                IOPCTL_PIO_ANAMUX_DI |
+                                IOPCTL_PIO_PSEDRAIN_DI |
+                                IOPCTL_PIO_INV_DI);
+
     for (uint8_t idx = 0; idx < MAX_SWITCHES; idx++)
     {
         IOPCTL_PinMuxSet(IOPCTL, switch_pin_defs[idx].port, switch_pin_defs[idx].pin, switch_cfg);
         GPIO_PinInit(GPIO, switch_pin_defs[idx].port, switch_pin_defs[idx].pin, &switch_pin_cfg);
     }
 
-    uint32_t led_cfg = (/* Pin is configured as PIO0_26 */
-                        IOPCTL_PIO_FUNC0 |
-                        /* Disable pull-up / pull-down function */
+    uint32_t led_cfg = (IOPCTL_PIO_FUNC0 |
                         IOPCTL_PIO_PUPD_DI |
-                        /* Enable pull-down function */
                         IOPCTL_PIO_PULLDOWN_EN |
-                        /* Disable input buffer function */
                         IOPCTL_PIO_INBUF_DI |
-                        /* Normal mode */
                         IOPCTL_PIO_SLEW_RATE_NORMAL |
-                        /* Normal drive */
                         IOPCTL_PIO_FULLDRIVE_DI |
-                        /* Analog mux is disabled */
                         IOPCTL_PIO_ANAMUX_DI |
-                        /* Pseudo Output Drain is disabled */
                         IOPCTL_PIO_PSEDRAIN_DI |
-                        /* Input function is not inverted */
                         IOPCTL_PIO_INV_DI);
 
     gpio_pin_config_t led_config = {
         kGPIO_DigitalOutput,
         0,
     };
+
     for (uint8_t idx = 0; idx < MAX_LEDS; idx++)
     {
         IOPCTL_PinMuxSet(IOPCTL, led_pin_defs[idx].port, led_pin_defs[idx].pin, led_cfg);
         GPIO_PinInit(GPIO, led_pin_defs[idx].port, led_pin_defs[idx].pin, &led_config);
     }
+
+    // This will provide a DIO to indicate SW2 has been pressed.
+    // Use this as a trigger for capturing a logic trace
+    IOPCTL_PinMuxSet(IOPCTL, 0, 5, led_cfg);
+    GPIO_PinInit(GPIO, 0, 5, &led_config);
 
     serdes_pins_initialized = true;
 }
@@ -183,6 +172,7 @@ static void serdes_configure_pin_interrupt()
 
 void serdes_set_led_state (led_color_t led, bool is_on)
 {
+    GPIO_PinWrite(GPIO, 0, 5, is_on);
     GPIO_PinWrite(GPIO, led_pin_defs[led].port, led_pin_defs[led].pin, is_on);
 }
 
