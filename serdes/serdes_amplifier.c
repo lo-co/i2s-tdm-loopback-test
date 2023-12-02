@@ -27,6 +27,7 @@ static uint8_t serdes_amp_reader(max98388_ctx_t *ctx, uint16_t reg, uint8_t *dat
 static uint8_t serdes_amp_writer(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len);
 static void i2c_amp_callback(I2C_Type *base, i2c_master_handle_t *handle, status_t status, void *userData);
 
+// Documented in .h
 void serdes_amp_init()
 {
     i2c_init_t init_cfg = {.address = AMPLIFIER_ADDRESS,
@@ -63,7 +64,30 @@ void serdes_amp_init()
     }
     cfg_reg = max98388_dump_configuration(&amp_ctx, &cfg_len);
 
-    data[6] = 0;
+    // Clear the state
+    max98388_return_state_status(&amp_ctx);
+
+}
+
+// FIXME: should really check to make sure that the PVDD power supply is up and running
+// Documented in .h
+serdes_amp_code_t serdes_amp_start()
+{
+    // uint16_t state = max98388_return_state_status(&amp_ctx);
+
+    uint8_t retStatus = max98388_enable(&amp_ctx, true);
+
+    if (retStatus)
+    {
+        return 1;
+    }
+    return 0;
+
+}
+
+void serdes_amp_stop()
+{
+    max98388_enable(&amp_ctx, false);
 }
 
 uint8_t serdes_amp_reader(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len)
@@ -89,8 +113,16 @@ uint8_t serdes_amp_writer(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint
     amp_i2c_ctx.transfer.master->flags = kI2C_TransferDefaultFlag;
     amp_i2c_ctx.transfer.master->data = data;
     amp_i2c_ctx.transfer.master->direction = kI2C_Write;
+    // amp_i2c_ctx.handle.master->
     status_t retVal = I2C_MasterTransferBlocking(amp_i2c_ctx.base, amp_i2c_ctx.transfer.master);
-    return retVal !=0;
+    if (retVal)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 static void i2c_amp_callback(I2C_Type *base, i2c_master_handle_t *handle, status_t status, void *userData)

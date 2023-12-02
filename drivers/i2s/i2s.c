@@ -106,14 +106,14 @@ static bool base_dma_initialized = false;
  */
 const i2s_pins_t i2s_pin_config[] =
 {
-    {.port = 0U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},
-    {.port = 0U, .sck_pin = 7U,  .ws_pin = 8U,  .data_pin = 9U},
-    {.port = 0U, .sck_pin = 14U, .ws_pin = 15U, .data_pin = 16U},
-    {.port = 0U, .sck_pin = 21U, .ws_pin = 22U, .data_pin = 23U},
-    {.port = 0U, .sck_pin = 28U, .ws_pin = 29U, .data_pin = 30U},
-    {.port = 1U, .sck_pin = 3U,  .ws_pin = 4U,  .data_pin = 5U},
-    {.port = 3U, .sck_pin = 25U, .ws_pin = 26U, .data_pin = 27U},
-    {.port = 4U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},
+    {.port = 0U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},    // FC 0
+    {.port = 0U, .sck_pin = 7U,  .ws_pin = 8U,  .data_pin = 9U},    // FC 1
+    {.port = 0U, .sck_pin = 14U, .ws_pin = 15U, .data_pin = 16U},   // FC 2
+    {.port = 0U, .sck_pin = 21U, .ws_pin = 22U, .data_pin = 23U},   // FC 3
+    {.port = 0U, .sck_pin = 28U, .ws_pin = 29U, .data_pin = 30U},   // FC 4
+    {.port = 1U, .sck_pin = 3U,  .ws_pin = 4U,  .data_pin = 5U},    // FC 5
+    {.port = 3U, .sck_pin = 25U, .ws_pin = 26U, .data_pin = 27U},   // FC 6
+    {.port = 4U, .sck_pin = 0U,  .ws_pin = 1U,  .data_pin = 2U},    // FC 7
 };
 
 /*******************************************************************************

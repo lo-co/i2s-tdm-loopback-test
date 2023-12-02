@@ -24,14 +24,14 @@ typedef struct i2c_pins_s
 
 const i2c_pins_t i2c_pin_config[] =
 {
-   {.port = 0, .sda_pin = 2,  .scl_pin = 1},
-   {.port = 0, .sda_pin = 9,  .scl_pin = 8},
-   {.port = 0, .sda_pin = 16, .scl_pin = 15},
-   {.port = 0, .sda_pin = 24, .scl_pin = 25},
-   {.port = 0, .sda_pin = 30, .scl_pin = 29},
-   {.port = 1, .sda_pin = 5,  .scl_pin = 4},
-   {.port = 3, .sda_pin = 27, .scl_pin = 26},
-   {.port = 4, .sda_pin = 2,  .scl_pin = 1},
+   {.port = 0, .sda_pin = 2,  .scl_pin = 1},    // FC 0
+   {.port = 0, .sda_pin = 9,  .scl_pin = 8},    // FC 1
+   {.port = 0, .sda_pin = 16, .scl_pin = 15},   // FC 2
+   {.port = 0, .sda_pin = 24, .scl_pin = 25},   // FC 3
+   {.port = 0, .sda_pin = 30, .scl_pin = 29},   // FC 4
+   {.port = 1, .sda_pin = 5,  .scl_pin = 4},    // FC 5
+   {.port = 3, .sda_pin = 27, .scl_pin = 26},   // FC 6
+   {.port = 4, .sda_pin = 2,  .scl_pin = 1},    // FC 7
 };
 
 /**
@@ -77,7 +77,6 @@ void i2c_init(i2c_init_t *init_cfg, i2c_ctx_t *ctx)
          */
         I2C_MasterGetDefaultConfig(&cfg);
         cfg.baudRate_Bps = init_cfg->baud_rate;
-        cfg.enableTimeout = true;
 
         I2C_MasterInit(ctx->base, &cfg, CLOCK_GetFlexCommClkFreq(init_cfg->flexcomm_port));
 
@@ -92,8 +91,8 @@ void i2c_pin_init(i2c_init_t *i2c_init)
     i2c_pins_t pins = i2c_pin_config[i2c_init->flexcomm_port];
 
     const uint32_t i2c_pin_cfg = (IOPCTL_PIO_FUNC1 |
-                                    IOPCTL_PIO_PUPD_EN |
-                                    IOPCTL_PIO_PULLUP_EN |
+                                    // IOPCTL_PIO_PUPD_EN |
+                                    // IOPCTL_PIO_PULLUP_EN |
                                     IOPCTL_PIO_INBUF_EN |
                                     IOPCTL_PIO_SLEW_RATE_NORMAL |
                                     IOPCTL_PIO_FULLDRIVE_DI |

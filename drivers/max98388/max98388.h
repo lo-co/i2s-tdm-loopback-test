@@ -87,12 +87,28 @@ max98388_rtn_status_t max98388_set_volume(max98388_ctx_t *ctx, uint8_t vol);
  */
 uint8_t max98388_mute(max98388_ctx_t *ctx);
 
+/**
+ * @brief Return the device revision ID.  Should be 0x41.
+ *
+ * @param ctx Amplifier context
+ * @param data Byte containing the device ID retrieved from the amp
+ * @return Return 0 on success
+ */
 uint8_t max98388_get_hw_rev(max98388_ctx_t *ctx, uint8_t *data);
 
 uint8_t max98388_write_raw_reg(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len);
 
+uint16_t max98388_return_state_status(max98388_ctx_t *ctx);
+
 max98388_reg_val_t *max98388_dump_configuration(max98388_ctx_t *ctx, uint32_t *len);
 
+/**
+ * @brief Set the enable bit
+ *
+ * @param ctx Amplifier context
+ * @param enable Enable == true
+ * @return Error code from I2C write.  0 if success.
+ */
 uint8_t max98388_enable(max98388_ctx_t *ctx, bool enable);
 
 #endif

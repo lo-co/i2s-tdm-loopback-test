@@ -1,6 +1,6 @@
 #include "fsl_ostimer.h"
 #include "fsl_clock.h"
-#include "fsl_debug_console.h"
+// #include "fsl_debug_console.h"
 
 #include "serdes_event.h"
 /*******************************************************************************
@@ -108,7 +108,7 @@ evt_action_response_t serdes_push_event(evt_type_t event_type, void *userData)
 
     if (event_context->full)
     {
-        PRINTF("Attempt to push event into queue failed.  Queue is full...\r\n");
+        // PRINTF("Attempt to push event into queue failed.  Queue is full...\r\n");
         return EVENT_QUEUE_FULL;
     }
 

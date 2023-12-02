@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include "board.h"
 #include "pin_mux.h"
-#include "fsl_debug_console.h"
+// #include "fsl_debug_console.h"
 #include "serdes/serdes_codec.h"
 #include "serdes/serdes_defs.h"
 #include "serdes/serdes_event.h"
@@ -93,8 +93,8 @@ int main(void)
 {
     /********** BEGIN INITIALIZATION *************/
     BOARD_InitBootClocks();
-    BOARD_InitBootPins();
-    BOARD_InitDebugConsole();
+    // BOARD_InitBootPins();
+    // BOARD_InitDebugConsole();
     serdes_event_init();
     serdes_register_handler(WAKEUP, wakeup_cb);
     serdes_register_handler(ENTER_DEEP_SLEEP, enter_deep_sleep_cb);
@@ -108,18 +108,18 @@ int main(void)
         serdes_amp_init();
     }
     CLOCK_EnableClock(kCLOCK_InputMux);
-    PRINTF("SERDES main application starting...\r\n");
+    // PRINTF("SERDES main application starting...\r\n");
     /********** END INITIALIZATION *************/
 
     if (BOARD_IS_MASTER)
     {
-        PRINTF("Board is master\r\n");
+        // PRINTF("Board is master\r\n");
         serdes_codec_init();
 
         // initialize amps and mics
     }
     else {
-        PRINTF("Board is slave\r\n");
+        // PRINTF("Board is slave\r\n");
         led_state.set_on = true;
         led_state.color = BLUE;
         serdes_push_event(SET_LED_STATE, &led_state);
@@ -148,23 +148,21 @@ static uint8_t sw2_int_cb(void *usrData)
         {
             led_state.set_on = true;
             led_state.color = GREEN;
-            PRINTF("Starting I2S bus...\r\n");
+            // PRINTF("Starting I2S bus...\r\n");
             serdes_i2s_start();
-            if (BOARD_IS_MASTER)
-            {
-                serdes_codec_src_start();
-            }
+            serdes_codec_src_start();
+            serdes_amp_start();
         }
         else
         {
             led_state.set_on = false;
             led_state.color = GREEN;
-            if (BOARD_IS_MASTER)
-            {
-                // serdes_codec_src_stop();
-            }
+
+            serdes_amp_stop();
             serdes_i2s_stop();
-            PRINTF("Stopping I2S transmission now..\r\n");
+            // serdes_codec_src_stop();
+
+            // PRINTF("Stopping I2S transmission now..\r\n");
         }
         serdes_push_event(SET_LED_STATE, &led_state);
     }
@@ -181,13 +179,13 @@ static uint8_t sw2_int_cb(void *usrData)
 static uint8_t wakeup_cb(void *usrData)
 {
     uint32_t power_state = *(uint32_t *)usrData;
-    PRINTF("System is awake.  Current power state is 0x%X\r\n", power_state);
+    // PRINTF("System is awake.  Current power state is 0x%X\r\n", power_state);
     return 0;
 }
 
 static uint8_t enter_deep_sleep_cb(void *usrData)
 {
-    PRINTF("Entering deep sleep...\r\n");
+    // PRINTF("Entering deep sleep...\r\n");
     return 0;
 }
 
@@ -228,7 +226,7 @@ static uint8_t process_data_received(void *usrData)
             break;
 
         default:
-            PRINTF("DATA NOT HANDLED\r\n");
+            // PRINTF("DATA NOT HANDLED\r\n");
             break;
     }
 

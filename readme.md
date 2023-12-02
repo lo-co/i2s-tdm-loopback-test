@@ -28,6 +28,7 @@ I2S busses on flexcomms 4 and 5 are located on J27 and J28 respectively.  The wi
 |         |  6  |              |      DATA    |
 |         |  7  |              |     GND      |
 
+
 ### Jumper Settings
 
 JP41 - 2-3
@@ -64,6 +65,8 @@ Power is provided to the evaluation kit through the 30 pin connector using 1.8 V
 | WS     |   J27      |   2     |      8        | See above |
 | DataIn |   J27      |   1     |      11       | See above |
 | DataOut |           |         |      14       |           |
+
+The I2C setup uses 2.2k pull-ups to Vdd (1.8 V).  These pull ups are not provided on the NXP eval board and the amp board has these as DNP.
 
 ### Register Config
 
@@ -112,6 +115,12 @@ The register configuration was setup using the Windows GUI utility provided with
 | BRWNOUT_PROT_ALC_INF_HOLD_RELEASE | 0x20EE | 0x00  |
 | BRWNOUT_PROT_ALC_EN             | 0x20EF  | 0x00  |
 
+
+## Results
+
+### Amp I2S
+
+![I2S_DIO](docs/amp-i2s-dio.png)
 
 # Resources
 

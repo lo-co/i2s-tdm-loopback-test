@@ -82,6 +82,19 @@ uint8_t max98388_write_raw_reg(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data,
     return ctx->writer(ctx, reg, data, len);
 }
 
+uint16_t max98388_return_state_status(max98388_ctx_t *ctx)
+{
+    uint16_t raw_status = 0;
+    uint8_t val = 0;
+    ctx->reader(ctx, STAT_STATE1, &val, 1);
+    raw_status = (uint16_t)val;
+    ctx->reader(ctx, STAT_STATE2, &val, 1);
+
+    raw_status |= ((uint16_t)val << 8);
+
+    return raw_status;
+}
+
 max98388_reg_val_t *max98388_dump_configuration(max98388_ctx_t *ctx, uint32_t *len)
 {
     uint8_t val = 0;
@@ -101,6 +114,7 @@ max98388_reg_val_t *max98388_dump_configuration(max98388_ctx_t *ctx, uint32_t *l
     return max98388_current_cfg;
 }
 
+// Documented in .h
 uint8_t max98388_enable(max98388_ctx_t *ctx, bool enable)
 {
     uint8_t global_enable = enable;

@@ -21,7 +21,7 @@
 #include "fsl_cs42448.h"
 #include "fsl_iopctl.h"
 #include "fsl_i2s.h"
-#include "fsl_debug_console.h"
+// #include "fsl_debug_console.h"
 #include "../drivers/i2s/i2s.h"
 #include "../drivers/gpio/gpio_def.h"
 #include "serdes_defs.h"
@@ -139,11 +139,11 @@ void serdes_codec_init()
 
     if (CODEC_Init(&codecHandle, &boardCodecConfig) != kStatus_Success)
     {
-        PRINTF("CODEC_Init failed!\r\n");
+        // PRINTF("CODEC_Init failed!\r\n");
         assert(false);
     }
 
-    PRINTF("\r\nCodec Init Done.\r\n");
+    // PRINTF("\r\nCodec Init Done.\r\n");
 }
 
 // Documented above
