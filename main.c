@@ -30,9 +30,6 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#ifndef BOARD_IS_MASTER
-#define BOARD_IS_MASTER 1
-#endif
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -81,7 +78,12 @@ static uint8_t process_data_received(void *usrData);
  ******************************************************************************/
 
 static led_state_t led_state = {.color = GREEN, .set_on = true};
-uint32_t mem[1024] = {0};
+
+/** Determines whether the boad is master or not.
+ *
+ * This is handled by GPIO
+*/
+static bool is_master = false;
 
 /*******************************************************************************
  * Code
@@ -101,15 +103,15 @@ int main(void)
     serdes_register_handler(INSERT_DATA, data_handler);
     serdes_register_handler(SWITCH_2_PRESSED, sw2_int_cb);
     serdes_register_handler(HANDLE_DATA_RECEIVED, process_data_received);
-    serdes_gpio_init(BOARD_IS_MASTER);
-    serdes_i2s_init(BOARD_IS_MASTER);
+    is_master = serdes_gpio_init();
+    serdes_i2s_init(is_master);
 
     CLOCK_EnableClock(kCLOCK_InputMux);
 
     PRINTF("SERDES main application starting...\r\n");
     /********** END INITIALIZATION *************/
 
-    if (BOARD_IS_MASTER)
+    if (is_master)
     {
         PRINTF("Board is master\r\n");
         serdes_amp_init();
@@ -128,7 +130,7 @@ int main(void)
         // Call the event dispatcher and handle any incoming events...
         serdes_dispatch_event();
 
-        if (!BOARD_IS_MASTER && serdes_memory_data_ready())
+        if (!is_master && serdes_memory_data_ready())
         {
             // Transmit I2S here
         }
@@ -138,7 +140,7 @@ int main(void)
 // Documented boave
 static uint8_t sw2_int_cb(void *usrData)
 {
-    if (BOARD_IS_MASTER)
+    if (is_master)
     {
         (void)usrData;
         if (!serdes_i2s_is_running())
@@ -192,7 +194,7 @@ static uint8_t data_handler(void *usrData)
     // we will then increment the buffer and make sure the data sits in the
     // buffer.  Here is an issue - what if we want to bundle.
     // TODO: Handle bundling of requests
-    if (!BOARD_IS_MASTER)
+    if (!is_master)
     {
         serdes_mem_insert_audio_data(NULL, BUFFER_SIZE);
     }

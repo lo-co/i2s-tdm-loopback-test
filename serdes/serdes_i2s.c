@@ -61,6 +61,8 @@ static uint8_t i2s_rx_event_cb(void *usrData);
  */
 static uint8_t i2s_tx_data_request(void *usrData);
 
+static const uint8_t zero_buffer[BUFFER_SIZE] = {0};
+
 
 /*******************************************************************************
  * Variables
@@ -165,6 +167,9 @@ void serdes_i2s_start_slave()
         txf.data = serdes_get_next_rx_buffer();
         I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
 
+        // ALWAYS send zeros...the amp output is high impedance so someone needs to drive
+        // txf.data = zero_buffer;
+        // I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
     }
 }
 
@@ -185,6 +190,7 @@ bool serdes_i2s_is_running()
 // Documented above
 static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
+    bool testing = false;
     // For the master, we assume that while transmitting there is always more data.
     // This allows for testing of the connection using something such as fill_memory
     // without constantly having to replenish the buffer explicitly.
@@ -193,6 +199,15 @@ static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
     {
         i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
         I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
+    }
+    else if (!tx_config.is_master)
+    {
+        // If the device is a slave - send zeros if there is no data available
+        // I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
+    }
+    else if (tx_config.is_master)
+    {
+        testing = true;
     }
 }
 
@@ -229,12 +244,16 @@ uint8_t i2s_rx_event_cb(void *usrData)
         for (uint32_t slot = data_start; slot < BUFFER_SIZE;)
         {
             // This signals a start to the data packet
+            // FIXME: THIS IS A HACK - we should only be looking for 0x1
             if (*(buffer+slot) == 0x1)
+            {
+                memset(data, 0, sizeof(data));
+                if (*(buffer+slot + 1) == 0x00)
             {
                 memset(data, 0, sizeof(data));
                 serdes_protocom_deserialize_data(buffer+slot, &data_pckt);
                 serdes_push_event(HANDLE_DATA_RECEIVED, &data_pckt);
-            }
+            }}
             slot += increment;
         }
     }

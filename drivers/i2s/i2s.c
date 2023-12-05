@@ -238,6 +238,7 @@ static void i2s_pin_init(i2s_init_t config)
                         IOPCTL_PIO_ANAMUX_DI |
                         IOPCTL_PIO_PSEDRAIN_DI |
                         IOPCTL_PIO_INV_DI);
+
     IOPCTL_PinMuxSet(IOPCTL, i2s_pin_config[config.flexcomm_bus].port, i2s_pin_config[config.flexcomm_bus].sck_pin,   pin_config);
     IOPCTL_PinMuxSet(IOPCTL, i2s_pin_config[config.flexcomm_bus].port, i2s_pin_config[config.flexcomm_bus].ws_pin,    pin_config);
     IOPCTL_PinMuxSet(IOPCTL, i2s_pin_config[config.flexcomm_bus].port, i2s_pin_config[config.flexcomm_bus].data_pin,  pin_config);

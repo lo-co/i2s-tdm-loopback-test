@@ -254,15 +254,24 @@ void fill_test_pattern(bool tone)
         uint32_t *tx_buffer = (uint32_t *)tx_audio_buffer;
         uint32_t buffer_size = NUM_CHANNELS * BUFFER_SIZE / 4;
 
-        // Set teh buffer to zero and fill it with the tonein channels
+        // Set the buffer to zero and fill it with the tonein channels
         // 0 and 1.
-        memset(tx_buffer, 0, buffer_size);
         for (uint32_t i = 0, j = 0; i < buffer_size; )
         {
             *(tx_buffer + i++) = tone_input[j];
-            *(tx_buffer + i++) = tone_input[j++];
-            j = j >=48 ? 0 : j;
-            i += 2;
+            *(tx_buffer + i) = tone_input[j++];
+            j = j >= 48 ? 0 : j;
+            if (i>1){
+            i += 7;
+            }
+            else {
+                i+=5;
+            }
+
+        }
+        for (uint8_t idx = 1; idx < BUFFER_NUMBER; idx++)
+        {
+            memcpy(tx_audio_buffer+BUFFER_SIZE * idx, tx_audio_buffer, BUFFER_SIZE );
         }
     }
     else

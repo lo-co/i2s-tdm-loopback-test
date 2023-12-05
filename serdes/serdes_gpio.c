@@ -60,14 +60,17 @@ static data_pckt_t led_data = {.src = SRC_GPIO, .data_length = 1, .data = &led_s
  * Function Definitions
  ******************************************************************************/
 
-void serdes_gpio_init(bool is_master)
+bool serdes_gpio_init()
 {
-    is_slave = !is_master;
     // Maintain a copy of the configuration structure
     serdes_gpio_pin_init();
+    is_slave = GPIO_PinRead(GPIO, 0,6);
+
     serdes_gpio_cfg_sw2_int();
     serdes_configure_pin_interrupt();
     serdes_register_handler(SET_LED_STATE, serdes_handle_led_event);
+
+    return !is_slave;
 }
 
 static void serdes_gpio_cfg_sw2_int()
@@ -113,6 +116,9 @@ static void serdes_gpio_pin_init()
         IOPCTL_PinMuxSet(IOPCTL, switch_pin_defs[idx].port, switch_pin_defs[idx].pin, switch_cfg);
         GPIO_PinInit(GPIO, switch_pin_defs[idx].port, switch_pin_defs[idx].pin, &switch_pin_cfg);
     }
+
+    IOPCTL_PinMuxSet(IOPCTL, 0, 6, switch_cfg);
+    GPIO_PinInit(GPIO, 0, 6, &switch_pin_cfg);
 
     uint32_t led_cfg = (IOPCTL_PIO_FUNC0 |
                         IOPCTL_PIO_PUPD_DI |
@@ -205,4 +211,8 @@ static void serdes_pint_cb(pint_pin_int_t pintr, uint32_t pmatch_status)
             // POWER_EnterSleep();
         }
     }
+}
+
+bool serdes_is_master()
+{
 }

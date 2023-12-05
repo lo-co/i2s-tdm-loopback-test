@@ -22,7 +22,7 @@ typedef struct led_state_s
  * Function Prototypes
  ******************************************************************************/
 
-void serdes_gpio_init(bool is_master);
+bool serdes_gpio_init();
 
 void serdes_set_led_state (led_color_t led, bool is_on);
 
