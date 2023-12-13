@@ -128,6 +128,8 @@ void i2s_init(i2s_init_t config)
 
     assert(config.flexcomm_bus >= FLEXCOMM_0 && config.flexcomm_bus < FLEXCOMM_ND);
 
+    assert(config.active_ch_pairs[0] != PAIR_MAX);
+
     i2s_config_t i2sConfig;
     clock_init(config);
 
@@ -175,12 +177,19 @@ void i2s_init(i2s_init_t config)
         I2S_RxGetDefaultConfig(&i2sConfig);
     }
 
-    i2sConfig.position = config.is_transmit ? 1 : 0;
+    if (!config.is_master && config.active_ch_pairs[0]  == PAIR_0 && config.is_transmit)
+    {
+        i2sConfig.position = 1;
+    }
+    else
+    {
+        i2sConfig.position = config.active_ch_pairs[0] * config.datalength * 2;
+    }
     i2sConfig.masterSlave = config.is_master ? kI2S_MasterSlaveNormalMaster : kI2S_MasterSlaveNormalSlave;
-    i2sConfig.mode = config.active_channels > 2 ? kI2S_ModeDspWsShort : kI2S_ModeI2sClassic;
+    i2sConfig.mode = kI2S_ModeDspWsShort;
     i2sConfig.dataLength = config.datalength;
-    i2sConfig.frameLength = config.datalength * config.active_channels;
-    i2sConfig.divider = config.is_master ? (FLEXCOMM_CLOCK_SOURCE / config.sample_rate / i2sConfig.frameLength) : 1;
+    i2sConfig.frameLength = config.datalength * 8;
+    i2sConfig.divider = (FLEXCOMM_CLOCK_SOURCE / config.sample_rate / i2sConfig.frameLength);
     i2sConfig.wsPol = true;
 
     set_peripheral_address(config);
@@ -193,18 +202,18 @@ void i2s_init(i2s_init_t config)
         I2S_RxInit(config.context->base, &i2sConfig);
     }
 
-    if (config.active_channels > 2)
+    for (uint8_t ch_pair = 1; ch_pair < 4; ch_pair++)
     {
-        // Divide the active number of channels by 2; we have already established the
-        // channels are in pairs
-        uint8_t channel_pairs = config.active_channels >> 1;
-        for (uint8_t frame = 1; frame < channel_pairs; frame++)
+        if (config.active_ch_pairs[ch_pair] == PAIR_MAX)
         {
-            uint8_t position = i2sConfig.position + frame * i2sConfig.dataLength * 2;
-            I2S_EnableSecondaryChannel(config.context->base, frame-1, false, position);
+            break;
+        }
+        else
+        {
+            uint8_t position = config.active_ch_pairs[ch_pair] * i2sConfig.dataLength * 2;
+            I2S_EnableSecondaryChannel(config.context->base, ch_pair - 1, false, position);
         }
     }
-
     // I2S CONFIGURATION COMPLETE //
 
     dma_init(config);
@@ -241,7 +250,22 @@ static void i2s_pin_init(i2s_init_t config)
 
     IOPCTL_PinMuxSet(IOPCTL, i2s_pin_config[config.flexcomm_bus].port, i2s_pin_config[config.flexcomm_bus].sck_pin,   pin_config);
     IOPCTL_PinMuxSet(IOPCTL, i2s_pin_config[config.flexcomm_bus].port, i2s_pin_config[config.flexcomm_bus].ws_pin,    pin_config);
-    IOPCTL_PinMuxSet(IOPCTL, i2s_pin_config[config.flexcomm_bus].port, i2s_pin_config[config.flexcomm_bus].data_pin,  pin_config);
+
+    if (config.enable_pd)
+    {
+        pin_config = (
+            IOPCTL_PIO_FUNC1 |
+            IOPCTL_PIO_PUPD_EN |
+            IOPCTL_PIO_PULLDOWN_EN |
+            IOPCTL_PIO_INBUF_EN |
+            IOPCTL_PIO_SLEW_RATE_NORMAL |
+            IOPCTL_PIO_FULLDRIVE_EN |
+            IOPCTL_PIO_ANAMUX_DI |
+            IOPCTL_PIO_PSEDRAIN_DI |
+            IOPCTL_PIO_INV_DI);
+    }
+
+        IOPCTL_PinMuxSet(IOPCTL, i2s_pin_config[config.flexcomm_bus].port, i2s_pin_config[config.flexcomm_bus].data_pin,  pin_config);
 }
 
 // Documented above
@@ -275,9 +299,7 @@ static void set_peripheral_address(i2s_init_t config)
             break;
         default:
             break;
-
     }
-
 }
 
 static void dma_init(i2s_init_t config)

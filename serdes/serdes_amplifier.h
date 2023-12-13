@@ -1,7 +1,7 @@
 /**
  * @file serdes_amplifier.h
  * @author Matt Richardson(mattrichardson@meta.com)
- * @brief
+ * @brief Implementation of the SERDES amplifier
  * @version 0.1
  * @date 2023-11-28
  *
@@ -38,6 +38,10 @@ void serdes_amp_init();
  */
 serdes_amp_code_t serdes_amp_start();
 
+/**
+ * @brief Disable the amplifier
+ *
+ */
 void serdes_amp_stop();
 
 #endif

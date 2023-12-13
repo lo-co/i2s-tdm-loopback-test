@@ -25,27 +25,32 @@ const uint16_t cfg_list[] = {
     BRWNOUT_PROT_ALC_EN
 };
 
+/** Size of configuration register list */
 static uint32_t cfg_list_size = sizeof(cfg_list) / sizeof(cfg_list[0]);
 
+/** Configuration register list values */
 static max98388_reg_val_t max98388_current_cfg[50] = {0};
 
-
+// Documented in .h
 uint8_t max98388_init(max98388_ctx_t *ctx, uint8_t *init_seq)
 {
     return 0;
 }
 
+// Documentedi in .h
 void max98388_reset(max98388_ctx_t *ctx)
 {
     ;
 }
 
+// Documented in.h
 max98388_status_t max98388_get_status(max98388_ctx_t *ctx)
 {
     max98388_status_t status = {.status_raw_1 = 0, .status_raw_2 = 0, .status_state_1 = 0, .status_state_2 = 0};
     return status;
 }
 
+//Documented in .h
 max98388_rtn_status_t max98388_set_volume(max98388_ctx_t *ctx, uint8_t vol)
 {
     if (vol <= 0x7F)
@@ -58,6 +63,7 @@ max98388_rtn_status_t max98388_set_volume(max98388_ctx_t *ctx, uint8_t vol)
     }
 }
 
+// Documented in .h
 uint8_t max98388_mute(max98388_ctx_t *ctx)
 {
     assert(ctx->initialized);
@@ -65,6 +71,7 @@ uint8_t max98388_mute(max98388_ctx_t *ctx)
     return ctx->writer(ctx, SPK_VOL_CTL, &mute_vol, 1);
 }
 
+// Documented in .h
 uint8_t max98388_get_hw_rev(max98388_ctx_t *ctx, uint8_t *data)
 {
     if (!ctx->reader(ctx, DEV_REV_ID, data, 1))
@@ -77,11 +84,13 @@ uint8_t max98388_get_hw_rev(max98388_ctx_t *ctx, uint8_t *data)
     }
 }
 
+// Documented in .h
 uint8_t max98388_write_raw_reg(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len)
 {
     return ctx->writer(ctx, reg, data, len);
 }
 
+// Documented in .h
 uint16_t max98388_return_state_status(max98388_ctx_t *ctx)
 {
     uint16_t raw_status = 0;
@@ -95,14 +104,14 @@ uint16_t max98388_return_state_status(max98388_ctx_t *ctx)
     return raw_status;
 }
 
+// Documented in .h
 max98388_reg_val_t *max98388_dump_configuration(max98388_ctx_t *ctx, uint32_t *len)
 {
     uint8_t val = 0;
-    uint8_t retVal = 0;
     *len = cfg_list_size;
     for (uint32_t idx = 0; idx < cfg_list_size; idx++)
     {
-        retVal = ctx->reader(ctx, cfg_list[idx], &val, 1);
+        uint8_t retVal = ctx->reader(ctx, cfg_list[idx], &val, 1);
         if (!retVal)
         {
             max98388_current_cfg[idx].reg = cfg_list[idx];

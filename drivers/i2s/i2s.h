@@ -51,6 +51,14 @@ typedef enum flexcomm_port_e {
     FLEXCOMM_ND,
 } flexcomm_port_t;
 
+typedef enum active_ch_pair_e {
+    PAIR_0,
+    PAIR_1,
+    PAIR_2,
+    PAIR_3,
+    PAIR_MAX
+} active_ch_pair_t;
+
 /** Defines which of the two shared sets a shared clock is occupying */
 typedef enum shared_set_e {
     NO_SHARE = 0,
@@ -71,6 +79,9 @@ typedef struct i2s_init_s
     i2s_context_t *context;       ///< I2S context
     bool share_clk;               ///< True if the clock is shared with other FC buses
     shared_set_t shared_clk_set;  ///< Set to value < FLEXCOMM_ND if intend to use a shared clock
+    active_ch_pair_t active_ch_pairs[4];    ///< Active channel pairs; PAIR_MAX indicates no further active
+    bool enable_pd;
+
 } i2s_init_t;
 
 /*******************************************************************************

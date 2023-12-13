@@ -1,6 +1,5 @@
 #include "fsl_ostimer.h"
 #include "fsl_clock.h"
-// #include "fsl_debug_console.h"
 
 #include "serdes_event.h"
 /*******************************************************************************

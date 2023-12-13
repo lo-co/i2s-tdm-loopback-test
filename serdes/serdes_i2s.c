@@ -47,21 +47,7 @@ static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *);
  */
 static uint8_t i2s_rx_event_cb(void *usrData);
 
-/**
- * @brief Event handler for indicating that there is outgoing data avaialble
- *
- * This function is used only by the slave.  Generally, the slave is not transmitting.
- * However, when the TX line is idle, the slave will fill an audio buffer with data
- * and raise the flag to indicate that the audio buffer needs to be sent.  Once a
- * transfer is triggered, the transfer will continue until the read and write positions
- * catch up to each other.
- *
- * @param usrData UNUSED but required for the event handler
- * @return Success
- */
-static uint8_t i2s_tx_data_request(void *usrData);
-
-static const uint8_t zero_buffer[BUFFER_SIZE] = {0};
+static uint8_t zero_buffer[SLAVE_BUFFER_SIZE] = {0};
 
 
 /*******************************************************************************
@@ -79,23 +65,24 @@ static i2s_init_t tx_config = {.flexcomm_bus = FLEXCOMM_4, .is_transmit = true,
                         .is_master = true, .active_channels = NUM_CHANNELS,
                         .sample_rate = SAMPLE_RATE_HZ, .datalength = DATA_LEN_BITS,
                         .callback = tx_i2s_cb, .context = &tx_i2s_context,
-                        .share_clk = false, .shared_clk_set = NO_SHARE};
+                        .share_clk = true, .shared_clk_set = SHARED_SET_1, .active_ch_pairs = {PAIR_0, PAIR_3, PAIR_MAX, PAIR_MAX},
+                        .enable_pd = false};
 static i2s_context_t rx_i2s_context;
+// Receive configuration is always a slave.  In the case of the MASTER NXP device, it is a slave to the transmit.  It will use the internal
+// clock output of the shared signal.
 static i2s_init_t rx_config = {.flexcomm_bus = FLEXCOMM_5, .is_transmit = false,
-                        .is_master = true, .active_channels = NUM_CHANNELS,
+                        .is_master = false, .active_channels = NUM_CHANNELS,
                         .sample_rate = SAMPLE_RATE_HZ, .datalength = DATA_LEN_BITS,
                         .callback = rx_i2s_cb, .context = &rx_i2s_context,
-                        .share_clk = false, .shared_clk_set = NO_SHARE};
+                        .share_clk = false, .shared_clk_set = SHARED_SET_1, .active_ch_pairs = {PAIR_1, PAIR_2, PAIR_MAX, PAIR_MAX},
+                        .enable_pd = false};
 
 static uint8_t *rx_buffer = 0;
-
-// FIXME: we won't overwhelm the command handler, but what if we did?
-static uint8_t data[2] = {0};
 
 /**
  * @brief Data packet for incoming data
  */
-static data_pckt_t data_pckt = {.src = SRC_NUM, .data_length = 0, .data = data};
+static data_pckt_t data_pckt = {.src = SRC_NUM, .data_length = 0, .data = 0x0};
 
 /*******************************************************************************
  * Function Definitions
@@ -106,25 +93,34 @@ void serdes_i2s_init(bool is_master)
 {
     if (!is_master)
     {
+        const active_ch_pair_t ch_pairs[4] = {PAIR_1, PAIR_MAX, PAIR_MAX, PAIR_MAX};
         tx_config.flexcomm_bus = FLEXCOMM_5;
         tx_config.is_master = false;
+        tx_config.shared_clk_set = NO_SHARE;
+        tx_config.share_clk = false;
+
         rx_config.flexcomm_bus = FLEXCOMM_4;
-        rx_config.is_master = false;
+        rx_config.shared_clk_set = NO_SHARE;
+
+        for (uint8_t idx = 0; idx < 4; idx++)
+        {
+            tx_config.active_ch_pairs[idx] = ch_pairs[idx];
+            rx_config.active_ch_pairs[idx] = ch_pairs[idx];
+        }
     } else
     {
         tx_config.share_clk = true;
         tx_config.shared_clk_set = SHARED_SET_1;
+        // rx_config.enable_pd = true;
         rx_config.shared_clk_set = SHARED_SET_1;
-
     }
 
     // Make sure the buffers contain nothing...
-    serdes_memory_init();
+    serdes_memory_init(is_master);
 
     i2s_init(tx_config);
     i2s_init(rx_config);
     serdes_register_handler(DATA_RECEIVED, i2s_rx_event_cb);
-    serdes_register_handler(DATA_AVAILABLE, i2s_tx_data_request);
 
     // Just run...listening
     if (!is_master)
@@ -160,7 +156,7 @@ void serdes_i2s_start_slave()
     // Kick start the receive buffers - this will cause at least an 8 ms latency in the receive
     // unless we shorten the first buffer and just chuck it...
     bus_is_running = true;
-    i2s_transfer_t txf = {.dataSize = BUFFER_SIZE};
+    i2s_transfer_t txf = {.dataSize = SLAVE_BUFFER_SIZE};
 
     for (uint8_t prebuffer = 0; prebuffer < max_prebuffers; prebuffer++)
     {
@@ -168,8 +164,8 @@ void serdes_i2s_start_slave()
         I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
 
         // ALWAYS send zeros...the amp output is high impedance so someone needs to drive
-        // txf.data = zero_buffer;
-        // I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
+        txf.data = zero_buffer;
+        I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
     }
 }
 
@@ -188,33 +184,28 @@ bool serdes_i2s_is_running()
 }
 
 // Documented above
-static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
+static void tx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t status,void *)
 {
-    bool testing = false;
     // For the master, we assume that while transmitting there is always more data.
     // This allows for testing of the connection using something such as fill_memory
     // without constantly having to replenish the buffer explicitly.
     // TODO: this should be changed in the future so that no stale buffers are sent.
     if (tx_config.is_master || serdes_memory_more_audio_data())
     {
-        i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
+        i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = tx_config.is_master ? MASTER_BUFFER_SIZE : SLAVE_BUFFER_SIZE};
         I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
     }
-    else if (!tx_config.is_master)
-    {
-        // If the device is a slave - send zeros if there is no data available
-        // I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
-    }
-    else if (tx_config.is_master)
-    {
-        testing = true;
+    else if (!tx_config.is_master) {
+        i2s_transfer_t txf = {.data = zero_buffer, .dataSize = SLAVE_BUFFER_SIZE};
+        I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
+
     }
 }
 
 // Documented above
 static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 {
-    i2s_transfer_t txf = {.data = serdes_get_next_rx_buffer(), .dataSize = BUFFER_SIZE};
+    i2s_transfer_t txf = {.data = serdes_get_next_rx_buffer(), .dataSize = rx_config.is_master ? MASTER_BUFFER_SIZE : SLAVE_BUFFER_SIZE};
     I2S_RxTransferReceiveDMA(rx_config.context->base, &rx_config.context->i2s_dma_handle, txf);
 
     if (!serdes_mem_get_next_read_buffer(&rx_buffer)) {
@@ -231,43 +222,24 @@ static void rx_i2s_cb(I2S_Type *,i2s_dma_handle_t *,status_t ,void *)
 // Documented above
 uint8_t i2s_rx_event_cb(void *usrData)
 {
-    (void)usrData;
+    uint8_t* buffer = (uint8_t *)usrData;
 
-    // TODO: remove this when done testing
-    if (rx_config.is_master){
+    for (uint32_t slot = 0; slot < MASTER_BUFFER_SIZE;)
+    {
+        uint64_t slot_data = *(uint64_t *)(buffer+slot);
+        // This signals a start to the data packet
 
-        uint8_t* buffer = (uint8_t *)usrData;
-
-        // Data that is transmitted by the slave will be found starting at DATA_CHANNEL_START
-        const uint32_t data_start = BYTES_PER_SAMPLE * CHANNEL_PAIR * DATA_CHANNEL_START;
-        const uint32_t increment = BYTES_PER_SAMPLE * NUM_CHANNELS;
-        for (uint32_t slot = data_start; slot < BUFFER_SIZE;)
+        if ((slot_data & 0xF) == 0xD)
         {
-            // This signals a start to the data packet
-            // FIXME: THIS IS A HACK - we should only be looking for 0x1
-            if (*(buffer+slot) == 0x1)
+            protocom_status_t status = serdes_protocom_deserialize_data(slot_data, &data_pckt);
+            if (status == PROTOCOM_SUCCESS)
             {
-                memset(data, 0, sizeof(data));
-                if (*(buffer+slot + 1) == 0x00)
-            {
-                memset(data, 0, sizeof(data));
-                serdes_protocom_deserialize_data(buffer+slot, &data_pckt);
                 serdes_push_event(HANDLE_DATA_RECEIVED, &data_pckt);
-            }}
-            slot += increment;
+            }
+
         }
+        slot += 16;
     }
-    // TODO: is there any reason that data might show up farther down the line than the first packet?
-    return 0;
-}
-
-// Documented above
-static uint8_t i2s_tx_data_request(void *usrData)
-{
-    (void)usrData;
-    i2s_transfer_t txf = {.data = serdes_get_next_tx_buffer(), .dataSize = BUFFER_SIZE};
-    I2S_TxTransferSendDMA(tx_config.context->base, &tx_config.context->i2s_dma_handle, txf);
-
     return 0;
 }
 

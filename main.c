@@ -53,8 +53,8 @@ static uint8_t enter_deep_sleep_cb(void *usrData);
 /**
  * @brief Handle the serialization of data for transfer across the I2S bridge
  *
- * Once data is serialized, flag that data is available for transmit via
- * the DATA_AVAILABLE event.
+ * Serializations will increment the read pointer in the buffer and force a
+ * transmit.
  *
  * @param usrData data_pckt_t structure of data to be serialized
  * @return MEMORY_STATUS_FULL if buffer is full
@@ -115,7 +115,7 @@ int main(void)
     {
         PRINTF("Board is master\r\n");
         serdes_amp_init();
-        serdes_codec_init();
+        // serdes_codec_init();
     }
     else {
         PRINTF("Board is slave\r\n");
@@ -198,10 +198,6 @@ static uint8_t data_handler(void *usrData)
     {
         serdes_mem_insert_audio_data(NULL, BUFFER_SIZE);
     }
-    if (MEMORY_STATUS_SUCCESS == status)
-    {
-        serdes_push_event(DATA_AVAILABLE, NULL);
-    }
 
     return status;
 }
@@ -215,7 +211,7 @@ static uint8_t process_data_received(void *usrData)
     {
         case SRC_GPIO:
             led_state.color = BLUE;
-            led_state.set_on = *data_pckt.data == 0xFF;
+            led_state.set_on = data_pckt.data == 0xFF;
             serdes_push_event(SET_LED_STATE, &led_state);
             break;
 

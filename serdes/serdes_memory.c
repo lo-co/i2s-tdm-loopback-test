@@ -26,6 +26,8 @@ void fill_test_pattern(bool tone);
  * Variables
  ******************************************************************************/
 
+/* The following variables define the pools of memory available to the different devices.
+*/
 /**
  * @brief Buffer used for transmitting data on the I2S bus.
  */
@@ -87,62 +89,61 @@ static uint8_t s_audio_src_read_position = 0;
 
 static bool data_memory_full = false;
 
+/**
+ * @brief This is the stored value of the transmit buffer size
+ *
+ */
+static uint32_t tx_buffer_size = 0;
+
+/**
+ * @brief Stored value of the receive buffer size
+ *
+ */
+static uint32_t rx_buffer_size = 0;
+
+/**
+ * @brief Stored value of the board role.
+ *
+ */
+static bool sys_is_master = false;
+
 /*******************************************************************************
  * Function Definitions
  ******************************************************************************/
 
+// FIXME: THIS IS CURRENTLY ONLY USED ON THE SLAVE..
 void serdes_mem_insert_audio_data(uint8_t *buffer, uint32_t length)
 {
-    uint64_t *current_buffer = (uint64_t *)(tx_audio_buffer + s_audio_write_position * BUFFER_SIZE);
+    // The ISR which utilizes the position can create a race condition.  Write to the new position
+    // and then once the write is complete, update the position. The way this was done previously
+    // meant that the data at that position would never go out
+    uint8_t temp_write_position = s_audio_write_position + 1 >= BUFFER_NUMBER ? 0 : s_audio_write_position + 1;
+    uint64_t *current_buffer = (uint64_t *)(tx_audio_buffer + temp_write_position * tx_buffer_size);
 
     // Make sure the buffer is zeroed...
-    memset(current_buffer, 0, BUFFER_SIZE);
+    memset(current_buffer, 0, tx_buffer_size);
 
-    uint64_t *incomming_buffer = (uint64_t *)buffer;
+    uint16_t buffer_len_64 = tx_buffer_size / 8;
 
-    uint16_t buffer_len_64 = BUFFER_SIZE / 8;
-
-    // Make sure all audio channels aside from 0 and 1 are muted and channels 6 and 7 contain
-    // data if available...
     for (uint16_t sample_pair = 0; sample_pair < buffer_len_64; )
     {
-        if (incomming_buffer != NULL)
-        {
-            current_buffer[sample_pair] = incomming_buffer[sample_pair];
-            sample_pair++;
-            // For the moment, fill channels 2-5 with zeros.  Not certain if anything else should go
-            // out on these...
-            current_buffer[sample_pair++] = 0;
-            current_buffer[sample_pair++] = 0;
-        }
-        else
-        {
-            sample_pair += 3;
-        }
-        // If there is data available, place that data in channels 6-7
+       // If there is data available, place that data in channels 6-7
         if (s_data_read_position != s_data_write_position)
         {
+            // Place the data in the data buffer in the transmit buffer
             current_buffer[sample_pair++] = tx_data_buffer[s_data_read_position++];
-
             if (s_data_read_position >= NUMBER_DATA_BUFFERS)
             {
                 s_data_read_position = 0;
             }
         }
-        else // No data available - fill 6 and 7 with zeros
+        else
         {
-            if (incomming_buffer == NULL)
-            {
-                break;
-            }
-            current_buffer[sample_pair++] = 0;
+            break;
         }
     }
 
-    if (++s_audio_write_position >= BUFFER_NUMBER)
-    {
-        s_audio_write_position = 0;
-    }
+   s_audio_write_position = temp_write_position;
 }
 
 // TODO: Fill out this function so data is inserted properly
@@ -158,13 +159,19 @@ memory_status_t serdes_mem_insert_data_data(uint64_t data)
     tx_data_buffer[s_data_write_position++] = data;
 
     data_memory_full = s_data_write_position == s_data_read_position;
+
+    if (s_data_write_position >= NUMBER_DATA_BUFFERS)
+    {
+        s_data_write_position = 0;
+    }
+
     return MEMORY_STATUS_SUCCESS;
 }
 
 // Documentation in .h
 uint8_t* serdes_get_next_tx_buffer()
 {
-    uint8_t *tx_buffer = tx_audio_buffer + s_audio_read_position++ * BUFFER_SIZE;
+    uint8_t *tx_buffer = tx_audio_buffer + s_audio_read_position++ * tx_buffer_size;
 
     if (s_audio_read_position >= BUFFER_NUMBER)
     {
@@ -176,9 +183,9 @@ uint8_t* serdes_get_next_tx_buffer()
 // Documentation in .h
 uint8_t* serdes_get_next_rx_buffer()
 {
-    uint8_t *rx_buffer = rx_audio_buffer + s_audio_rx_write_position++ * BUFFER_SIZE;
+    uint8_t *rx_buffer = rx_audio_buffer + s_audio_rx_write_position++ * rx_buffer_size;
 
-    memset(rx_buffer, 0, BUFFER_SIZE);
+    memset(rx_buffer, 0, rx_buffer_size);
 
     if (s_audio_rx_write_position >= BUFFER_NUMBER)
     {
@@ -187,6 +194,7 @@ uint8_t* serdes_get_next_rx_buffer()
     return rx_buffer;
 }
 
+// Documentation in .h
 memory_status_t serdes_mem_get_next_read_buffer(uint8_t **buffer)
 {
     if (s_audio_rx_read_position == s_audio_rx_write_position)
@@ -194,7 +202,7 @@ memory_status_t serdes_mem_get_next_read_buffer(uint8_t **buffer)
         return MEMORY_STATUS_EMPTY;
     }
 
-    *buffer = rx_audio_buffer + s_audio_rx_read_position++ * BUFFER_SIZE;
+    *buffer = rx_audio_buffer + s_audio_rx_read_position++ * rx_buffer_size;
 
     if (s_audio_rx_read_position >= BUFFER_NUMBER)
     {
@@ -206,7 +214,7 @@ memory_status_t serdes_mem_get_next_read_buffer(uint8_t **buffer)
 // Documentation in .h
 uint8_t* serdes_get_next_audio_src_buffer()
 {
-    uint8_t *rx_buffer = audio_src_data + s_audio_src_write_position++ * BUFFER_SIZE;
+    uint8_t *rx_buffer = audio_src_data + s_audio_src_write_position++ * AUDIO_SRC_BUFFER_SIZE;
 
     if (s_audio_src_write_position >= NUMBER_CODEC_BUFFERS)
     {
@@ -216,14 +224,17 @@ uint8_t* serdes_get_next_audio_src_buffer()
 }
 
 // Documented in .h
-void serdes_memory_init()
+void serdes_memory_init(bool is_master)
 {
-    memset(tx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-    fill_test_pattern(true);
-    memset(rx_audio_buffer, 0, BUFFER_NUMBER * BUFFER_SIZE);
-    memset(tx_data_buffer, 0, NUMBER_DATA_BUFFERS * DATA_BUFFER_SIZE);
-    memset(audio_src_data, 0, NUMBER_CODEC_BUFFERS * BUFFER_SIZE);
+    sys_is_master = is_master;
+    tx_buffer_size = is_master ? MASTER_BUFFER_SIZE : SLAVE_BUFFER_SIZE;
+    rx_buffer_size = is_master ? MASTER_BUFFER_SIZE : SLAVE_BUFFER_SIZE;
 
+    memset(tx_audio_buffer, 0, BUFFER_NUMBER * tx_buffer_size);
+    fill_test_pattern(true);
+    memset(rx_audio_buffer, 0, BUFFER_NUMBER * rx_buffer_size);
+    memset(tx_data_buffer, 0, NUMBER_DATA_BUFFERS * DATA_BUFFER_SIZE);
+    memset(audio_src_data, 0, NUMBER_CODEC_BUFFERS * AUDIO_SRC_BUFFER_SIZE);
 
     // Start the read buffer two positions behind the write.  So, not matter what we have
     // 2 buffers of silence before transmission of data
@@ -252,7 +263,7 @@ void fill_test_pattern(bool tone)
         int32_t tone_input[48] = {0};
         generate_tone(tone_input, 48, 50);
         uint32_t *tx_buffer = (uint32_t *)tx_audio_buffer;
-        uint32_t buffer_size = NUM_CHANNELS * BUFFER_SIZE / 4;
+        uint32_t buffer_size = NUM_CHANNELS * tx_buffer_size / 4;
 
         // Set the buffer to zero and fill it with the tonein channels
         // 0 and 1.
@@ -261,17 +272,14 @@ void fill_test_pattern(bool tone)
             *(tx_buffer + i++) = tone_input[j];
             *(tx_buffer + i) = tone_input[j++];
             j = j >= 48 ? 0 : j;
-            if (i>1){
-            i += 7;
-            }
-            else {
-                i+=5;
-            }
-
+            // if (i > 1)
+            // {
+            i += 3;
+            // }
         }
         for (uint8_t idx = 1; idx < BUFFER_NUMBER; idx++)
         {
-            memcpy(tx_audio_buffer+BUFFER_SIZE * idx, tx_audio_buffer, BUFFER_SIZE );
+            memcpy(tx_audio_buffer+tx_buffer_size * idx, tx_audio_buffer, tx_buffer_size);
         }
     }
     else

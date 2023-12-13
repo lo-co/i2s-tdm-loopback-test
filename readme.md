@@ -14,6 +14,19 @@ Although also depicted is a microphone acting as a source of PCM data, this will
 
 In addition to the codec on the master, the audio EVK provides other built in peripherals including switches and LEDs.  In this POC, the system will respond to a button presson on the slave by inserting data into the receive stream on the master.  When the master receives the data from the switch press, it will respond with a change in an LED state.
 
+### I2S Configuration
+
+I2S can be configured for individual channel pairs up to 4.  For configuration for the POC, we will want the following
+
+* BLCK/FS = 256 bits per frame
+* 32-bits per slot
+* Master
+  * Transmit
+    * Channel pairs enabled = 0, for audio transmit; 3, for data transmit to slave
+  * Receive
+    * Channel pairs enabled = 3, for data from slave; 2, data from amplifier
+
+
 ### Wiring
 
 I2S busses on flexcomms 4 and 5 are located on J27 and J28 respectively.  The wiring is as follows

@@ -113,7 +113,7 @@ static i2s_context_t rx_i2s_context;
 static i2s_init_t rx_i2s_cfg = {.flexcomm_bus = FLEXCOMM_1, .is_transmit = false,
                         .is_master = true, .active_channels = 8, .sample_rate = 48000,
                         .datalength = 32, .callback = codec_rx_cb, .context = &rx_i2s_context,
-                        .share_clk = false, .shared_clk_set = NO_SHARE};
+                        .share_clk = false, .shared_clk_set = NO_SHARE, .active_ch_pairs = {PAIR_0, PAIR_MAX, PAIR_MAX, PAIR_MAX}};
 
 // Transmitter for audio to codec - this is not needed in the SERDES POC but is here for
 // completion

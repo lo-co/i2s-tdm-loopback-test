@@ -47,6 +47,12 @@ static uint8_t serdes_handle_led_event(void *userData);
  */
 static void serdes_configure_pin_interrupt();
 
+/**
+ * @brief Pin interrupt callback
+ *
+ * @param pintr Pin that generated the interrupt
+ * @param pmatch_status Pattern match status
+ */
 static void serdes_pint_cb(pint_pin_int_t pintr, uint32_t pmatch_status);
 
 /*******************************************************************************
@@ -55,11 +61,12 @@ static void serdes_pint_cb(pint_pin_int_t pintr, uint32_t pmatch_status);
 static bool serdes_pins_initialized =  false;
 static bool is_slave = false;
 static uint8_t led_state = 0x0;
-static data_pckt_t led_data = {.src = SRC_GPIO, .data_length = 1, .data = &led_state};
+static data_pckt_t led_data = {.src = SRC_GPIO, .data_length = 1, .data = 0x0};
 /*******************************************************************************
  * Function Definitions
  ******************************************************************************/
 
+// Documented in .h
 bool serdes_gpio_init()
 {
     // Maintain a copy of the configuration structure
@@ -73,6 +80,7 @@ bool serdes_gpio_init()
     return !is_slave;
 }
 
+// Documented above
 static void serdes_gpio_cfg_sw2_int()
 {
     gpio_interrupt_config_t config = {kGPIO_PinIntEnableEdge, kGPIO_PinIntEnableLowOrFall};
@@ -89,6 +97,7 @@ static void serdes_gpio_cfg_sw2_int()
     // GPIO_PinEnableInterrupt(GPIO, switch_pin_defs[SWITCH_1].port, switch_pin_defs[SWITCH_1].pin, kGPIO_InterruptB);
 }
 
+// Documented above
 static void serdes_gpio_pin_init()
 {
     // initialize the port for the switch
@@ -149,6 +158,10 @@ static void serdes_gpio_pin_init()
     serdes_pins_initialized = true;
 }
 
+/**
+ * @brief Handler for INTA interrput.
+ *
+ */
 void GPIO_INTA_DriverIRQHandler(void)
 {
     /* clear the interrupt status */
@@ -163,6 +176,7 @@ void GPIO_INTA_DriverIRQHandler(void)
 //     SDK_ISR_EXIT_BARRIER;
 // }
 
+// Documented above
 static void serdes_configure_pin_interrupt()
 {
     INPUTMUX_Init(INPUTMUX);
@@ -176,6 +190,7 @@ static void serdes_configure_pin_interrupt()
     EnableDeepSleepIRQ(PIN_INT0_IRQn);
 }
 
+// Documented in .h
 void serdes_set_led_state (led_color_t led, bool is_on)
 {
     GPIO_PinWrite(GPIO, 0, 5, is_on);
@@ -184,8 +199,8 @@ void serdes_set_led_state (led_color_t led, bool is_on)
 
 static uint8_t serdes_handle_led_event(void *userData)
 {
-    led_state_t led_state = *(led_state_t *)userData;
-    serdes_set_led_state(led_state.color, led_state.set_on);
+    led_state_t usr_led_state = *(led_state_t *)userData;
+    serdes_set_led_state(usr_led_state.color, usr_led_state.set_on);
     return 0;
 }
 
@@ -194,6 +209,7 @@ static void serdes_pint_cb(pint_pin_int_t pintr, uint32_t pmatch_status)
     if (is_slave)
     {
         led_state = !led_state ? 0xFF : 0x0;
+        led_data.data = (uint64_t)led_state;
         serdes_push_event(INSERT_DATA, &led_data);
     }
     else{
@@ -211,8 +227,4 @@ static void serdes_pint_cb(pint_pin_int_t pintr, uint32_t pmatch_status)
             // POWER_EnterSleep();
         }
     }
-}
-
-bool serdes_is_master()
-{
 }

@@ -1,7 +1,7 @@
 /**
  * @file max98388.h
- * @author your name (you@domain.com)
- * @brief
+ * @author Matt Richardson (mattrichardson@meta.com)
+ * @brief Driver for MAX98388 amplifier
  * @version 0.1
  * @date 2023-11-27
  *
@@ -96,10 +96,32 @@ uint8_t max98388_mute(max98388_ctx_t *ctx);
  */
 uint8_t max98388_get_hw_rev(max98388_ctx_t *ctx, uint8_t *data);
 
+/**
+ * @brief Write a raw register value to the amplifier
+ *
+ * @param ctx Amplifier context
+ * @param reg Register to write to
+ * @param data Data to write to the register
+ * @param len Length of data to write to register
+ * @return uint8_t
+ */
 uint8_t max98388_write_raw_reg(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len);
 
+/**
+ * @brief Return current values of state registers
+ *
+ * @param ctx Amplifier context
+ * @return First byte is the register representing STATE1 and the second is STATE2
+ */
 uint16_t max98388_return_state_status(max98388_ctx_t *ctx);
 
+/**
+ * @brief Dump the values of all configuration registers
+ *
+ * @param ctx Amplifier context
+ * @param len Returned length of configuration list size
+ * @return Pointer to the max configuration register list
+ */
 max98388_reg_val_t *max98388_dump_configuration(max98388_ctx_t *ctx, uint32_t *len);
 
 /**

@@ -25,7 +25,6 @@ typedef enum evt_type_e
     WAKEUP,
     ENTER_DEEP_SLEEP,
     INSERT_DATA,
-    DATA_AVAILABLE,
     HANDLE_DATA_RECEIVED,
     MAX_EVENT
 } evt_type_t;
@@ -85,6 +84,12 @@ void serdes_event_init();
  */
 evt_action_response_t serdes_event_reset();
 
+/**
+ * @brief Register a function to handle an event
+ *
+ * @param event Event to be handled
+ * @param handler Pointer to function to handle event
+ */
 void serdes_register_handler(evt_type_t event, event_handler handler);
 
 #endif

@@ -1,7 +1,7 @@
 /**
  * @file serdes_amplifier.c
  * @author Matt Richardson (mattrichardson@meta.com)
- * @brief
+ * @brief Implementation of amplifier code
  * @version 0.1
  * @date 2023-11-28
  *
@@ -22,9 +22,36 @@ static i2c_master_handle_t handle;
 static i2c_master_transfer_t txfr;
 static max98388_ctx_t amp_ctx = {0};
 
-
+/**
+ * @brief Implementation of amplifier reader
+ *
+ * @param ctx Ampflifier context
+ * @param reg Register to read
+ * @param data Data returned from read
+ * @param len Length of data returned
+ * @return 0 is success
+ */
 static uint8_t serdes_amp_reader(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len);
+
+/**
+ * @brief Implementation of amplifier writer
+ *
+ * @param ctx Amplifier context
+ * @param reg Register to write to
+ * @param data Data to write
+ * @param len Length of data to write
+ * @return 0 on success
+ */
 static uint8_t serdes_amp_writer(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len);
+
+/**
+ * @brief I2C callback for asynchronous calls to the amplifier
+ *
+ * @param base I2C base address
+ * @param handle I2C handle
+ * @param status Status returned
+ * @param userData User data to be used
+ */
 static void i2c_amp_callback(I2C_Type *base, i2c_master_handle_t *handle, status_t status, void *userData);
 
 // Documented in .h
@@ -50,9 +77,11 @@ void serdes_amp_init()
     uint32_t cfg_len = 0;
     max98388_reg_val_t *cfg_reg;
     cfg_reg = max98388_dump_configuration(&amp_ctx, &cfg_len);
+
+    // Changed the ouptut to fit into a single slot
     uint8_t reg_cfg_vals[] = {
         0x0A, 0x58, 0x08, 0x02, 0x01, 0xD9, 0x08, 0x88,
-        0x10, 0x14, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0x10, 0x12, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
         0xFF, 0xFF, 0x00, 0x10, 0x01, 0x03, 0x01, 0x01,
         0x0F, 0x02, 0x03, 0x01, 0x0F, 0x00, 0x01, 0x10,
         0x03, 0x04, 0x20, 0x06, 0x02, 0x33, 0x00, 0x00
@@ -73,20 +102,18 @@ void serdes_amp_init()
 // Documented in .h
 serdes_amp_code_t serdes_amp_start()
 {
-
-    // Set the volume to 50%
-    // max98388_set_volume(&amp_ctx, 0x08);
-
-    uint8_t retStatus = max98388_enable(&amp_ctx, true);
+    max98388_enable(&amp_ctx, true);
 
     return 0;
 }
 
+// Documented in .h
 void serdes_amp_stop()
 {
     max98388_enable(&amp_ctx, false);
 }
 
+// Docuemented above
 uint8_t serdes_amp_reader(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len)
 {
     // Setup the transfer...
@@ -101,6 +128,7 @@ uint8_t serdes_amp_reader(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint
     return retVal != 0;
 }
 
+// Documented above
 uint8_t serdes_amp_writer(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint8_t len)
 {
     // Setup the transfer...
@@ -110,8 +138,8 @@ uint8_t serdes_amp_writer(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint
     amp_i2c_ctx.transfer.master->flags = kI2C_TransferDefaultFlag;
     amp_i2c_ctx.transfer.master->data = data;
     amp_i2c_ctx.transfer.master->direction = kI2C_Write;
-    // amp_i2c_ctx.handle.master->
     status_t retVal = I2C_MasterTransferBlocking(amp_i2c_ctx.base, amp_i2c_ctx.transfer.master);
+
     if (retVal)
     {
         return 1;
@@ -122,6 +150,7 @@ uint8_t serdes_amp_writer(max98388_ctx_t *ctx, uint16_t reg, uint8_t *data, uint
     }
 }
 
+// Documented above
 static void i2c_amp_callback(I2C_Type *base, i2c_master_handle_t *handle, status_t status, void *userData)
 {
     (void)base;
