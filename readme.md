@@ -13,7 +13,7 @@ This is a proof of concept (POC) intended to show the ability to serialize data 
 
 A generalized depcition of the POC layout is shown in the image below.  In this image, the two boards are connected by a single I2S bus for receive and transmit.  The master is connected to the onboard codec ([Cirrus Logic CS42448](https://www.cirrus.com/products/cs42448/)) which serves as the audio source for the proof of concept.  When triggered, the master board starts communication with the codec (i.e. receiving input audio from the codec) and starts the clocks (bit clock and frame sync) for the bridge communication between the master and the other devices on the line (the amp and the slave device).
 
-![POC Layout](docs/POC_Layout.png)
+![Proposed layout for the proof of concept.  Two Flexcomm ports - 4 and 5 - are shown for communication between the master, slave and amps.  The master on Flexcomm 4 shares both clocks with all other devices in the system.  Note: in the PoC implementation, only a single amplifier is used and the master Flexcomm lines for configuring and communicating with the amplifier are missing.](docs/POC_Layout.png)
 
 Aside from the slave board, the system also consists of a [MAX98388](https://www.analog.com/en/products/max98388.html) amp from Analog Devices.  This amp can be configured to receive data in time domain multiplexed (TDM) format on a particular channel.  In addition, the amp can be configured to return IV data similarly in TDM format on particular channels.  Data is inserted on the configured channel and all other channels are held in a high impedance state allowing other devices on the line to insert data on other channels. (Another amp is shown in this image only to demonstrate a potential configuration but is not part of the actual POC).
 
@@ -26,7 +26,7 @@ In addition to the codec on the master, the audio EVK provides other built in pe
 For the RT685, I2S can be configured for individual channel _pairs_ up to 4. The sampling rate for the POC is set at 48 kHz with a sample resolution of 32-bits.  The system is configured to run at 256 bits/frame - this assumes 8 channels for each frame.  The bit clock is set to run at
 
 $$
-f_{bit_clock} = N_{bits}\times{f_{sample}}\times{N_{channels}}\\
+f_{bclk} = N_{bits}\times{f_{sample}}\times{N_{channels}}\\
  = 32\times48000\times8\\
  = 12.288\mbox{ MHz}
 $$
@@ -54,6 +54,14 @@ Both the slave and the master use two I2S busses: Flexcomm 4 and 5.  On the AUD-
 |         |  7  |              |     GND      |
 
 In order to route the Flexcomm 5 data line to the Arduino header, jumper JP41 must be set to position 2-3 (the default position is 1-2).  For diagnostic purposes (i.e. use with a logic analyzer), Switch 2 input is triggered as an output on P0_5 which can be accessed on J30 pin 1.
+
+The wiring is illustrated in the following diagrams for both the master and slave.
+
+![Wiring of the master board as seen from above and to the side.  Note the breakout of the Flexcomm port used for the I2C connection to the amplifier (brown and black wires) as well as power supplied to the amp (red wires) and ground (green wires).  For I2S, the transmit lines are represented by the black (data), white (frame sync) and red (bit clock) coming from the Arduino connector.  Since the clock is shared with the receive and the slave, only a single wire is coming from the receive port which is blue (data).](docs/img/master_layout.png)
+
+![Slave configuration as seen from above (left) and from the side (right).  The three lines on the Arduino connector are connected to the Flexcomm port used for transmitting data.  the wires are data (white), frame sync (red) and bit clock (yellow).  The orange wire is used to indicate that the board is configured as a slave. ](docs/img/slave_layout.png)
+
+![Overview of the entire proof of concept configuration.](docs/img/system_above.JPG)
 
 ## Board Functions
 
@@ -109,6 +117,12 @@ Power is provided to the evaluation kit through the 30 pin connector using 1.8 V
 
 The I2C setup uses 2.2k pull-ups to Vdd (1.8 V).  These pull ups are not provided on the NXP eval board and the amp board has these as DNP.
 
+Images of the amp and the I2C breakout wiring are shown below.
+
+![View of amp evaluation kit wired to the PoC breakouts. Two large wires (red and black) are connected to PVDD on the board.  The power supply as connected is a [Pevono PS305H](https://www.amazon.com/pevono-digital-adjustable-switching-regulated/dp/b076tmjb35).  This power supply provides the 5V required for actually operating the amplifier.](docs/img/amp_above.JPG)
+
+![Breakout board for accessing Flexcomm pins used for I2C communication with the MAX98388 EVK on the master.  The break out board is required to access the pins on the 50 mil pin header.](docs/img/i2c_breakout.JPG)
+
 ### Register Config
 
 The MAX98388 is configured as follows at boot.  Communication is strictly through the master board.  Audio is received via Flexcomm 4 in slot 0.  The amplifier _must_ be configured at system boot - there is no on board non-volatile memory on the dev kit.  The amp is initialized via I2C (pins described above) on Flexcomm 3.  Flexcomm 3 is repurposed from the I2S out for the onboard Codec of the master.  The I2C bus is configured as master with a baudrate of 100 kbps.  The amplifier address used here is the default address of the amplifier - address pin is tied to VDD - so the value is 0x70.  As the address is a 7-bit address, the value is shifted left by 1 bit.
@@ -158,6 +172,11 @@ After the I2C bus has been initialized, the amplifier is configured.  The follow
 | BRWNOUT_PROT_ALC_INF_HOLD_RELEASE | 0x20EE | 0x00  | Default. |
 | BRWNOUT_PROT_ALC_EN             | 0x20EF  | 0x00  | Default. |
 
+### Transmitted Amp Data
+
+Below is a capture of I2S data from and to the master.  In  the top pain (yellow trace) is the bit clock.  The Second panel is the frame sync.  And the last two panes are audio data fropm the master (blue) and IV data from the amplifier (purple).  The audio data is going out in slot 0 (channels 0 and 1) and is simple tone data.  The IV data starts in slot 2 (channels 4 and 5).  Because the incoming line is configured as high impedance for channels that are not used, data on the line is indeterminate and hence the reason you see in some cases the line remain high after transmission of the amplifier data is complete.
+
+![Logic trace from the master I2S bus.  Top panel is the bit clock; second panel is the frame sync running at 48 kHz; third panel is the audio out from the master; and the fourth panel is the IV data returned from the amplifier.  Not shown here is the capture of data from the slave (this data is on demand).](docs/amp-i2s-dio.png)
 
 ## Results
 
@@ -165,7 +184,6 @@ Given the setup described above, we were able to stream audio (a tone), transmit
 
 ### Amp I2S
 
-![I2S_DIO](docs/amp-i2s-dio.png)
 
 ## Next Steps
 
