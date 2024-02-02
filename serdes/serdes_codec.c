@@ -8,7 +8,7 @@
  * The CODEC receiver will start when the button to start transmission is
  * pressed and stopped when the button is pressed again.
  *
- * @author Matt Ricahrdson (mattrichardson@meta.com)
+ * @author Matt Ricahrdson (matt.richardson@msrconsults.com)
  * @brief
  * @version 0.1
  * @date 2023-11-07

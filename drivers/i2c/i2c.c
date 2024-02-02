@@ -1,6 +1,6 @@
 /**
  * @file i2c.c
- * @author Matt Richardson (mattrichardson@meta.com)
+ * @author Matt Richardson (matt.richardson@msrconsults.com)
  * @brief
  * @version 0.1
  * @date 2023-11-28

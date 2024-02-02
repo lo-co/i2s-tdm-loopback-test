@@ -1,6 +1,6 @@
 /**
  * @file serdes_event.h
- * @author Matt Richardson (mattrichardson@meta.com)
+ * @author Matt Richardson (matt.richardson@msrconsults.com)
  * @brief
  * @version 0.1
  * @date 2023-11-06

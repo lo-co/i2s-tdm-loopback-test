@@ -1,6 +1,6 @@
 /**
  * @file max98388.h
- * @author Matt Richardson (mattrichardson@meta.com)
+ * @author Matt Richardson (matt.richardson@msrconsults.com)
  * @brief Driver for MAX98388 amplifier
  * @version 0.1
  * @date 2023-11-27

@@ -1,7 +1,7 @@
 
 /**
  * @file max98388_registers.h
- * @author Matt Richardson (mattrichardson@meta.com)
+ * @author Matt Richardson (matt.richardson@msrconsults.com)
  * @brief Register list for the MAX 98388 amplifier
  * @version 0.1
  * @date 2023-11-27

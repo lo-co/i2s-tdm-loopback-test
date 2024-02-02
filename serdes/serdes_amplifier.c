@@ -1,6 +1,6 @@
 /**
  * @file serdes_amplifier.c
- * @author Matt Richardson (mattrichardson@meta.com)
+ * @author Matt Richardson (matt.richardson@msrconsults.com)
  * @brief Implementation of amplifier code
  * @version 0.1
  * @date 2023-11-28
